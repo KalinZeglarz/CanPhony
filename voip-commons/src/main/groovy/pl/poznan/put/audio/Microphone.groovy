@@ -1,15 +1,24 @@
 package pl.poznan.put.audio
 
+import groovy.util.logging.Log
+
 import javax.sound.sampled.*
 
+@Log
 class Microphone {
 
     AudioQuality audioQuality = AudioQuality.LOW_MONO
-    AudioStream audioStream
+    AudioBuffer audioBuffer
 
     private boolean capturing = false
     private Thread capturingThread
     private TargetDataLine line
+
+    private Microphone() {}
+
+    Microphone(AudioBuffer audioBuffer) {
+        this.audioBuffer = audioBuffer
+    }
 
     boolean isLineSupported() {
         DataLine.Info info = new DataLine.Info(TargetDataLine.class, audioQuality.format)
@@ -19,22 +28,22 @@ class Microphone {
         return true
     }
 
-    void start() {
+    boolean start() {
         if (capturing) {
-            return
+            return false
         }
 
         if (!isLineSupported()) {
-            println("Line not supported")
-            System.exit(1)
+            log.severe("Line not supported")
+            return false
         }
 
         capturingThread = new Thread({
-            byte[] buffer = new byte[audioStream.bufferSize]
+            byte[] buffer = new byte[audioBuffer.size]
             while (capturing) {
                 line.read(buffer, 0, buffer.length)
-                audioStream.write(buffer)
-                sleep((audioQuality.getSampleRate() / audioStream.bufferSize).toInteger())
+                audioBuffer.write(buffer)
+                sleep((audioQuality.getSampleRate() / audioBuffer.size).toInteger())
             }
         })
 
@@ -52,8 +61,9 @@ class Microphone {
             }
         })
 
-        line.open(audioQuality.format)
+        line.open(audioQuality.format, audioBuffer.size)
         line.start()
+        return true
     }
 
     void stop() {

@@ -1,15 +1,24 @@
 package pl.poznan.put.audio
 
+import groovy.util.logging.Log
+
 import javax.sound.sampled.*
 
+@Log
 class Speakers {
 
     AudioQuality audioQuality = AudioQuality.LOW_MONO
-    AudioStream audioStream = new AudioStream()
+    AudioBuffer audioBuffer
 
     private boolean playing = false
     private Thread playThread
     private SourceDataLine line
+
+    private Speakers() {}
+
+    Speakers(AudioBuffer audioBuffer) {
+        this.audioBuffer = audioBuffer
+    }
 
     boolean isLineSupported() {
         DataLine.Info info = new DataLine.Info(TargetDataLine.class, audioQuality.format)
@@ -19,20 +28,23 @@ class Speakers {
         return true
     }
 
-    void start() {
+    boolean start() {
         if (playing) {
-            return
+            return false
         }
 
         if (!isLineSupported()) {
-            println("Line not supported")
-            System.exit(1)
+            log.severe("Line not supported")
+            return false
         }
 
         playThread = new Thread({
             while (playing) {
-                byte[] buffer = audioStream.read()
-                line.write(buffer, 0, buffer.length)
+                try {
+                    byte[] buffer = audioBuffer.read()
+                    line.write(buffer, 0, buffer.length)
+                } catch (InterruptedIOException ignored) {
+                }
             }
         })
 
@@ -51,8 +63,9 @@ class Speakers {
             }
         })
 
-        line.open(audioQuality.format)
+        line.open(audioQuality.format, audioBuffer.size)
         line.start()
+        return true
     }
 
     void stop() {

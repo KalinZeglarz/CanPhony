@@ -33,7 +33,7 @@ class Window{
         //Cleaning frame
         this.frame.getContentPane().removeAll();
         this.frame.repaint();
-        
+
         //Creating the panel for components
         JPanel panel = new JPanel();
         panel.setLayout(new FlowLayout(FlowLayout.RIGHT));

@@ -30,8 +30,10 @@ class Window{
     }
 
     void login(){
+        //Cleaning frame
         this.frame.getContentPane().removeAll();
         this.frame.repaint();
+        
         //Creating the panel for components
         JPanel panel = new JPanel();
         panel.setLayout(new FlowLayout(FlowLayout.RIGHT));
@@ -74,8 +76,11 @@ class Window{
     }
 
     void connection(){
+
+        //Cleaning frame
         this.frame.getContentPane().removeAll();
         this.frame.repaint();
+
         //Creating the panel for components
         JPanel panel = new JPanel();
         panel.setLayout(new FlowLayout(FlowLayout.CENTER));
@@ -97,7 +102,7 @@ class GUI {
     public static void main(String args[]) throws InterruptedException {
         Window gui = new Window();
         gui.login();
-        //TimeUnit.SECONDS.sleep(5);
+        TimeUnit.SECONDS.sleep(5);
         gui.connection();
     }
 }

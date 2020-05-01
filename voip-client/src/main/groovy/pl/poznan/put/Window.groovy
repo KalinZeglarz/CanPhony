@@ -24,10 +24,10 @@ class Window {
         this.helpMenu = new JMenu("Help")
         this.menuBar.add(fileMenu)
         this.menuBar.add(helpMenu)
-        JMenuItem fmenuOpen = new JMenuItem("Open")
-        JMenuItem fmenuSave = new JMenuItem("Save as")
-        fileMenu.add(fmenuOpen)
-        fileMenu.add(fmenuSave)
+        JMenuItem fileMenuOpen = new JMenuItem("Open")
+        JMenuItem fileMenuSave = new JMenuItem("Save as")
+        fileMenu.add(fileMenuOpen)
+        fileMenu.add(fileMenuSave)
     }
 
     void login() {

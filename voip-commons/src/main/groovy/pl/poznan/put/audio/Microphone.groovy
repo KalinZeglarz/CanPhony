@@ -1,10 +1,10 @@
 package pl.poznan.put.audio
 
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 
 import javax.sound.sampled.*
 
-@Log
+@Slf4j
 class Microphone {
 
     AudioQuality audioQuality = AudioQuality.LOW_MONO
@@ -34,7 +34,7 @@ class Microphone {
         }
 
         if (!isLineSupported()) {
-            log.severe("Line not supported")
+            log.error("Line not supported")
             return false
         }
 

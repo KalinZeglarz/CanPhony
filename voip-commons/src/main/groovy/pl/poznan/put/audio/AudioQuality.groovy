@@ -1,7 +1,7 @@
 package pl.poznan.put.audio
 
 import org.json.JSONObject
-import pl.poznan.put.subpub.JSONable
+import pl.poznan.put.structures.JSONable
 
 import javax.sound.sampled.AudioFormat
 
@@ -60,7 +60,7 @@ enum AudioQuality implements JSONable {
         return NONE
     }
 
-    static AudioQuality parseJSON(String text) {
+    static AudioQuality parseJSON(final String text) {
         JSONObject parsedJson = new JSONObject(text)
         float sampleRate = parsedJson.getFloat('sampleRate')
         int sampleSize = parsedJson.getInt('sampleSize')

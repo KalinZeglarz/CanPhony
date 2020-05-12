@@ -1,10 +1,10 @@
-package pl.poznan.put.subpub
+package pl.poznan.put.structures
 
 import org.json.JSONObject
 
 @FunctionalInterface
 interface JSONable {
 
-    abstract JSONObject toJSON()
+    JSONObject toJSON()
 
 }

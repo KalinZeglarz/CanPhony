@@ -11,4 +11,23 @@
 
     <artifactId>voip-commons</artifactId>
 
+    <properties>
+        <slf4j2.version>2.13.2</slf4j2.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.hibernate.javax.persistence</groupId>
+            <artifactId>hibernate-jpa-2.1-api</artifactId>
+            <version>1.0.2.Final</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${slf4j2.version}</version>
+        </dependency>
+    </dependencies>
+
 </project>

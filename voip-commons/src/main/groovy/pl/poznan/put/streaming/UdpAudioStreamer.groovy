@@ -1,11 +1,12 @@
 package pl.poznan.put.streaming
 
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 import pl.poznan.put.audio.AudioBuffer
 
-@Log
+@Slf4j
 class UdpAudioStreamer {
 
+    String remoteAddress
     int streamerPort
     int receiverPort
     int sleepTime
@@ -14,6 +15,7 @@ class UdpAudioStreamer {
     AudioBuffer audioBuffer
 
     void start() {
+        log.info("starting streaming to address: ${remoteAddress}:${receiverPort}")
         stop = false
         DatagramSocket socket = new DatagramSocket(null as SocketAddress)
         socket.setReuseAddress(true)
@@ -22,10 +24,15 @@ class UdpAudioStreamer {
             while (!stop) {
                 try {
                     byte[] data = audioBuffer.read()
-                    DatagramPacket packet = new DatagramPacket(data, 0, data.length, InetAddress.localHost, receiverPort)
+                    if (data == null) {
+                        break
+                    }
+                    DatagramPacket packet = new DatagramPacket(data, 0, data.length,
+                            InetAddress.getByName(remoteAddress), receiverPort)
                     socket.send(packet)
                     sleep(sleepTime)
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    e.printStackTrace()
                     socket.close()
                 }
             }

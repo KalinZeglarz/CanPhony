@@ -1,10 +1,10 @@
 package pl.poznan.put.audio
 
-import groovy.util.logging.Log
+import groovy.util.logging.Slf4j
 
 import javax.sound.sampled.*
 
-@Log
+@Slf4j
 class Speakers {
 
     AudioQuality audioQuality = AudioQuality.LOW_MONO
@@ -34,7 +34,7 @@ class Speakers {
         }
 
         if (!isLineSupported()) {
-            log.severe("Line not supported")
+            log.error("Line not supported")
             return false
         }
 
@@ -42,6 +42,9 @@ class Speakers {
             while (playing) {
                 try {
                     byte[] buffer = audioBuffer.read()
+                    if (buffer == null) {
+                        break
+                    }
                     line.write(buffer, 0, buffer.length)
                 } catch (InterruptedIOException ignored) {
                 }

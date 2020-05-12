@@ -10,11 +10,22 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>voip-client</artifactId>
+
+    <properties>
+        <slf4j2.version>2.13.2</slf4j2.version>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>pl.poznan.put</groupId>
             <artifactId>voip-commons</artifactId>
             <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j-impl</artifactId>
+            <version>${slf4j2.version}</version>
         </dependency>
     </dependencies>
 

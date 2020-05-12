@@ -8,19 +8,26 @@ class AudioBuffer {
     PipedInputStream input = new PipedInputStream()
     PipedOutputStream output = new PipedOutputStream(input)
 
-    private AudioBuffer(){}
+    private AudioBuffer() {}
 
-    AudioBuffer(int size){
+    AudioBuffer(int size) {
         this.size = size
     }
 
     void write(byte[] data) {
-        output.flush()
-        output.write(data)
+        try {
+            output.flush()
+            output.write(data)
+        } catch (IOException ignored) {
+        }
     }
 
     byte[] read() {
-        return input.readNBytes(size)
+        try {
+            return input.readNBytes(size)
+        } catch (IOException ignored) {
+        }
+        return null
     }
 
 }

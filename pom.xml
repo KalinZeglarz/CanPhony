@@ -18,12 +18,14 @@
     <properties>
         <java.version>11</java.version>
 
-        <groovy.version>3.0.2</groovy.version>
+        <groovy.version>3.0.3</groovy.version>
         <org.json.version>20190722</org.json.version>
+        <jedis.version>3.3.0</jedis.version>
+        <slf4j-api.version>1.7.30</slf4j-api.version>
 
         <maven.compiler.version>3.8.1</maven.compiler.version>
         <groovy.compilier.version>3.6.0-03</groovy.compilier.version>
-        <groovy.batch.version>3.0.2-01</groovy.batch.version>
+        <groovy.batch.version>3.0.3-01</groovy.batch.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -45,8 +47,21 @@
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
-            <version>3.2.0</version>
+            <version>${jedis.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>slf4j-api</artifactId>
+                    <groupId>org.slf4j</groupId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j-api.version}</version>
+        </dependency>
+
     </dependencies>
 
     <build>

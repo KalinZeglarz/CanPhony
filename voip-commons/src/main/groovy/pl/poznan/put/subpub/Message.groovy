@@ -1,50 +1,27 @@
 package pl.poznan.put.subpub
 
-import groovy.transform.PackageScope
 import org.json.JSONObject
+import pl.poznan.put.structures.JSONable
 
 import java.time.LocalDateTime
 
 class Message implements JSONable {
 
-    final private LocalDateTime timeStamp
-    final private MessageType messageType
-    final private JSONObject content
-
-    private Message() {
-        this.timeStamp = null
-        this.messageType = null
-        this.content = null
-    }
-
-    @PackageScope
-    Message(LocalDateTime timeStamp, MessageType messageType, JSONObject content) {
-        this.timeStamp = timeStamp
-        this.messageType = messageType
-        this.content = content
-    }
-
-    @PackageScope
-    Message(LocalDateTime timeStamp, MessageType messageType) {
-        this(timeStamp, messageType, null)
-    }
-
-    @PackageScope
-    Message(LocalDateTime timeStamp, JSONObject content) {
-        this(timeStamp, MessageType.NONE, content)
-    }
-
-    @PackageScope
-    Message(LocalDateTime timeStamp, String text) {
-        this(timeStamp, MessageType.TEXT, new JSONObject("{'content': ${text}"))
-    }
+    private LocalDateTime timeStamp = null
+    private MessageAction action = null
+    private String sender = null
+    private JSONObject content = null
 
     LocalDateTime getTimeStamp() {
         return timeStamp
     }
 
-    MessageType getMessageType() {
-        return messageType
+    MessageAction getAction() {
+        return action
+    }
+
+    String getSender() {
+        return sender
     }
 
     JSONObject getContent() {
@@ -55,7 +32,8 @@ class Message implements JSONable {
     JSONObject toJSON() {
         JSONObject json = new JSONObject()
         json.put('timestamp', timeStamp)
-        json.put('type', messageType)
+        json.put('action', action)
+        json.put('sender', sender)
         if (content != null) {
             json.put('content', content)
         }
@@ -64,12 +42,14 @@ class Message implements JSONable {
 
     static Message parseJSON(final String text) {
         JSONObject parsedJson = new JSONObject(text)
-        LocalDateTime timeStamp = LocalDateTime.parse(parsedJson.get('timestamp').toString())
-        MessageType messageType = MessageType.valueOf(parsedJson.get('type').toString())
+        LocalDateTime timeStamp = LocalDateTime.parse(parsedJson.getString('timestamp'))
+        MessageAction messageAction = MessageAction.valueOf(parsedJson.getString('action'))
+        String sender = parsedJson.getString('sender').toString()
         JSONObject json = null
         if (parsedJson.has('content')) {
             json = parsedJson.getJSONObject('content')
         }
-        return new Message(timeStamp, messageType, json)
+        return new Message(timeStamp: timeStamp, action: messageAction, sender: sender, content: json)
     }
+
 }

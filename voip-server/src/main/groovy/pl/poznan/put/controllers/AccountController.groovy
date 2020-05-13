@@ -7,10 +7,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.managers.DatabaseManager
-import pl.poznan.put.structures.ApiResponse
-import pl.poznan.put.structures.LoginRequest
-import pl.poznan.put.structures.LoginResponse
-import pl.poznan.put.structures.MessageResponse
+import pl.poznan.put.structures.*
 
 import javax.servlet.http.HttpServletRequest
 
@@ -49,6 +46,14 @@ class AccountController {
         } else {
             return new ResponseEntity(new MessageResponse(message: "server error"), HttpStatus.INTERNAL_SERVER_ERROR)
         }
+    }
+
+    @GetMapping(value = "/user-list", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    ResponseEntity<ApiResponse> userList() {
+        log.info('received user list request')
+        Set<String> userList = DatabaseManager.getUserList()
+        return new ResponseEntity(new UserListResponse(userList: userList), HttpStatus.OK)
     }
 
 }

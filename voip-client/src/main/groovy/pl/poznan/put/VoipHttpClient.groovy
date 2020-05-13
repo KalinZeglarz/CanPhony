@@ -2,10 +2,7 @@ package pl.poznan.put
 
 import groovy.util.logging.Slf4j
 import org.json.JSONObject
-import pl.poznan.put.structures.LoginRequest
-import pl.poznan.put.structures.LoginResponse
-import pl.poznan.put.structures.PhoneCallRequest
-import pl.poznan.put.structures.PhoneCallResponse
+import pl.poznan.put.structures.*
 
 import java.net.http.HttpClient
 import java.net.http.HttpRequest
@@ -51,6 +48,22 @@ class VoipHttpClient {
         return PhoneCallResponse.parseJSON(response.body())
     }
 
+    Set<String> getUserList() {
+        log.info("getting user list")
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI("http://${serverAddress}/account/user-list"))
+                .setHeader("User-Agent", "Java 11 HttpClient")
+                .GET()
+                .build()
+
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+        log.info("received: " + response.body())
+        Set<String> result = UserListResponse.parseJSON(response.body()).userList
+        result.remove(username)
+        return result
+    }
+
     private HttpResponse<String> accountPost(String username, String password, String endpoint) {
         JSONObject body = new LoginRequest(username: username, password: password).toJSON()
         HttpRequest request = HttpRequest.newBuilder()
@@ -68,6 +81,7 @@ class VoipHttpClient {
     }
 
     LoginResponse login(String username, String password) {
+        log.info("logging in")
         HttpResponse<String> response = accountPost(username, password, "login")
         if (response == null) {
             return null

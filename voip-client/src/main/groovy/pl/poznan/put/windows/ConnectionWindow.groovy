@@ -7,6 +7,7 @@ import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.subpub.Message
 import pl.poznan.put.subpub.MessageFactory
 import pl.poznan.put.subpub.RedisClient
+import pl.poznan.put.windows.Window
 
 import javax.swing.*
 import javax.swing.event.DocumentEvent
@@ -23,12 +24,15 @@ import static pl.poznan.put.subpub.MessageAction.*
 @Slf4j
 class ConnectionWindow extends Window {
 
+    private static final int USER_LIST_REQUEST_PERIOD = 30000
+
     final String username
     final String serverAddress
     final VoipHttpClient httpClient
     final RedisClient redisClient
     PhoneCallClient phoneCallClient = null
     Integer currentSessionId = null
+    Thread userListListener
 
     ConnectionWindow(VoipHttpClient httpClient, RedisClient redisClient) {
         this.httpClient = httpClient
@@ -81,7 +85,7 @@ class ConnectionWindow extends Window {
         log.info("[${response.sessionId}] subscribing with start call callback")
         redisClient.unsubscribe(username)
         redisClient.subscribeChannel(response.sessionId.toString()) { String channelName,
-                                                           String messageString ->
+                                                                      String messageString ->
             Message message = Message.parseJSON(messageString)
             if (message.sender == username) {
                 return
@@ -100,8 +104,6 @@ class ConnectionWindow extends Window {
             }
         }
     }
-
-
 
     void create(JFrame frame) {
 
@@ -122,7 +124,7 @@ class ConnectionWindow extends Window {
         // Search
         JPanel searchPanel = new JPanel()
 
-        searchPanel.setLayout(new GridLayout(2,1))
+        searchPanel.setLayout(new GridLayout(2, 1))
 
         JLabel searchLabel = new JLabel("Select or search user to make a call: ")
         JTextField searchField = new JTextField(16)
@@ -132,15 +134,24 @@ class ConnectionWindow extends Window {
 
         // Contacts
         JPanel contactsPanel = new JPanel()
-        String[] testContacts = ["tommy", "bobby", "andrew", "apollo", "mike", "tommy", "bobby", "andrew",
-                                 "apollo", "mike", "tommy", "bobby", "andrew", "apollo", "mike", "andrew",
-                                 "apollo", "mike", "tommy", "bobby", "andrew", "apollo", "mike", "andrew"]
 
         DefaultTableModel model = new DefaultTableModel()
-        model.addColumn("Usernames", testContacts)
+        model.addColumn("Usernames")
         JTable contactsTable = new JTable(model)
         TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(model)
         contactsTable.setRowSorter(sorter)
+
+        userListListener = new Thread({
+            while (!Thread.currentThread().isInterrupted()) {
+                Set<String> userList = this.httpClient.getUserList()
+                model.setRowCount(0)
+                for (String user in userList) {
+                    model.addRow(user)
+                }
+                sleep(USER_LIST_REQUEST_PERIOD)
+            }
+        })
+        userListListener.start()
 
         JScrollPane scrollPane = new JScrollPane(contactsTable)
         scrollPane.setPreferredSize(new Dimension(350, 150))
@@ -149,7 +160,7 @@ class ConnectionWindow extends Window {
         // Controls
         JPanel controlsPanel = new JPanel()
         controlsPanel.setPreferredSize(new Dimension(200, 50))
-        controlsPanel.setLayout(new GridLayout(1,2))
+        controlsPanel.setLayout(new GridLayout(1, 2))
 
         JButton connectButton = new JButton("Connect")
         connectButton.addActionListener(new ActionListener() {
@@ -189,9 +200,11 @@ class ConnectionWindow extends Window {
             void changedUpdate(DocumentEvent e) {
                 filter()
             }
+
             void removeUpdate(DocumentEvent e) {
                 filter()
             }
+
             void insertUpdate(DocumentEvent e) {
                 filter()
             }
@@ -201,9 +214,18 @@ class ConnectionWindow extends Window {
                 if (text.length() == 0) {
                     sorter.setRowFilter(null)
                 } else {
-                    sorter.setRowFilter(RowFilter.regexFilter(text))
+                    String caseInsensitive = convertToCaseInsensitiveRegex(text)
+                    sorter.setRowFilter(RowFilter.regexFilter(caseInsensitive))
                 }
                 mainPanel.updateUI()
+            }
+
+            private String convertToCaseInsensitiveRegex(String text) {
+                StringBuilder result = new StringBuilder()
+                for (String letter in text) {
+                    result.append("[${letter.toLowerCase()}${letter.toUpperCase()}]")
+                }
+                return result.toString()
             }
         })
 

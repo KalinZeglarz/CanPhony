@@ -9,6 +9,11 @@ import pl.poznan.put.subpub.MessageFactory
 import pl.poznan.put.subpub.RedisClient
 
 import javax.swing.*
+import javax.swing.event.DocumentEvent
+import javax.swing.event.DocumentListener
+import javax.swing.table.DefaultTableModel
+import javax.swing.table.TableModel
+import javax.swing.table.TableRowSorter
 import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
@@ -96,29 +101,63 @@ class ConnectionWindow extends Window {
         }
     }
 
+
+
     void create(JFrame frame) {
+
         // Cleaning frame
         frame.getContentPane().removeAll()
         frame.repaint()
+        frame.setSize(420, 350)
+        // Main panel
+        JPanel mainPanel = new JPanel()
+        mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
 
-        // Creating the panel for components
-        JPanel panel = new JPanel()
-        panel.setLayout(new FlowLayout(FlowLayout.CENTER))
-
+        // Username
+        JPanel usernamePanel = new JPanel()
+        usernamePanel.setPreferredSize(new Dimension(400, 20))
         JLabel yourUsernameLabel = new JLabel("Logged in as: " + username)
+        usernamePanel.add(yourUsernameLabel)
 
-        JLabel usernameLabel = new JLabel("Username")
-        usernameLabel.setHorizontalAlignment(SwingConstants.RIGHT)
-        JTextField usernameField = new JTextField(16)
-        usernameLabel.setLabelFor(usernameField)
+        // Search
+        JPanel searchPanel = new JPanel()
+
+        searchPanel.setLayout(new GridLayout(2,1))
+
+        JLabel searchLabel = new JLabel("Select or search user to make a call: ")
+        JTextField searchField = new JTextField(16)
+
+        searchPanel.add(searchLabel)
+        searchPanel.add(searchField)
+
+        // Contacts
+        JPanel contactsPanel = new JPanel()
+        String[] testContacts = ["tommy", "bobby", "andrew", "apollo", "mike", "tommy", "bobby", "andrew",
+                                 "apollo", "mike", "tommy", "bobby", "andrew", "apollo", "mike", "andrew",
+                                 "apollo", "mike", "tommy", "bobby", "andrew", "apollo", "mike", "andrew"]
+
+        DefaultTableModel model = new DefaultTableModel()
+        model.addColumn("Usernames", testContacts)
+        JTable contactsTable = new JTable(model)
+        TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(model)
+        contactsTable.setRowSorter(sorter)
+
+        JScrollPane scrollPane = new JScrollPane(contactsTable)
+        scrollPane.setPreferredSize(new Dimension(350, 150))
+        contactsPanel.add(scrollPane)
+
+        // Controls
+        JPanel controlsPanel = new JPanel()
+        controlsPanel.setPreferredSize(new Dimension(200, 50))
+        controlsPanel.setLayout(new GridLayout(1,2))
 
         JButton connectButton = new JButton("Connect")
         connectButton.addActionListener(new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked connect button")
-                if (!usernameField.getText().isEmpty()) {
-                    PhoneCallResponse response = httpClient.startCall(usernameField.getText())
+                if (!searchField.getText().isEmpty()) {
+                    PhoneCallResponse response = httpClient.startCall(searchField.getText())
                     currentSessionId = response.sessionId
                     redisStartCallSubscribe(response)
                 }
@@ -142,14 +181,40 @@ class ConnectionWindow extends Window {
                 }
             }
         })
+        controlsPanel.add(connectButton)
+        controlsPanel.add(disconnectButton)
 
-        panel.add(yourUsernameLabel)
-        panel.add(usernameField)
-        panel.add(connectButton)
-        panel.add(disconnectButton)
+        // Listener
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            void changedUpdate(DocumentEvent e) {
+                filter()
+            }
+            void removeUpdate(DocumentEvent e) {
+                filter()
+            }
+            void insertUpdate(DocumentEvent e) {
+                filter()
+            }
 
-        // Adding Components to the frame.
-        frame.getContentPane().add(BorderLayout.CENTER, panel)
+            void filter() {
+                String text = searchField.getText()
+                if (text.length() == 0) {
+                    sorter.setRowFilter(null)
+                } else {
+                    sorter.setRowFilter(RowFilter.regexFilter(text))
+                }
+                mainPanel.updateUI()
+            }
+        })
+
+        // Adding components to main panel
+        mainPanel.add(usernamePanel, BorderLayout.CENTER)
+        mainPanel.add(searchPanel, BorderLayout.CENTER)
+        mainPanel.add(contactsPanel, BorderLayout.CENTER)
+        mainPanel.add(controlsPanel, BorderLayout.CENTER)
+
+        // Adding main panel to the frame.
+        frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
         frame.setVisible(true)
     }
 

@@ -22,29 +22,59 @@ class RegistrationWindow extends Window implements SaveServerAddress {
         // Cleaning frame
         frame.getContentPane().removeAll()
         frame.repaint()
+        frame.setSize(420, 220)
 
-        // Creating the panel for components
-        JPanel panel = new JPanel()
-        panel.setLayout(new FlowLayout(FlowLayout.RIGHT))
+        // Main panel
+        JPanel mainPanel = new JPanel()
+        mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
 
-        JLabel serverAddressLabel = new JLabel("Server Address")
-        serverAddressLabel.setHorizontalAlignment(SwingConstants.RIGHT)
-        JTextField serverAddressField = new JTextField(16)
-        serverAddressField.setText(serverAddress)
+        // Server
+        JPanel serverPanel = new JPanel()
+
+        JLabel serverAddressLabel = new JLabel("           Server:")
+        JTextField serverAddressField = new JTextField(8)
         serverAddressLabel.setLabelFor(serverAddressField)
 
-        JLabel usernameLabel = new JLabel("Username")
-        usernameLabel.setHorizontalAlignment(SwingConstants.RIGHT)
-        JTextField usernameField = new JTextField(16)
-        usernameLabel.setLabelFor(usernameField)
+        JLabel serverPortLabel = new JLabel("      Port:")
+        JTextField serverPortField = new JTextField(4)
+        serverPortLabel.setLabelFor(serverPortField)
 
-        JLabel passLabel = new JLabel("Password")
-        JPasswordField passField = new JPasswordField(16)
-        passLabel.setLabelFor(passField)
+        serverPanel.add(serverAddressLabel)
+        serverPanel.add(serverAddressField)
+        serverPanel.add(serverPortLabel)
+        serverPanel.add(serverPortField)
 
-        JLabel passConfirmLabel = new JLabel("Confirm password")
-        JPasswordField passConfirmField = new JPasswordField(16)
-        passConfirmLabel.setLabelFor(passField)
+        // Username
+        JPanel usernamePanel = new JPanel()
+
+        JLabel usernameLabel = new JLabel("     Username:")
+        JTextField usernameField = new JTextField(18)
+
+        usernamePanel.add(usernameLabel)
+        usernamePanel.add(usernameField)
+
+        // Password
+        JPanel passwordPanel = new JPanel()
+
+        JLabel passwordLabel = new JLabel("      Password:")
+        JPasswordField passwordField = new JPasswordField(18)
+
+        passwordPanel.add(passwordLabel)
+        passwordPanel.add(passwordField)
+
+        // Password confirm
+        JPanel passConfirmPanel = new JPanel()
+
+        JLabel passConfirmLabel = new JLabel("Re-password:")
+        JPasswordField passConfirmField = new JPasswordField(18)
+        passConfirmLabel.setLabelFor(passwordField)
+
+        passConfirmPanel.add(passConfirmLabel)
+        passConfirmPanel.add(passConfirmField)
+
+        // Controls
+        JPanel controlsPanel = new JPanel()
+        controlsPanel.setLayout(new GridLayout(1,2))
 
         JButton backButton = new JButton("Back")
         backButton.addActionListener(new ActionListener() {
@@ -62,7 +92,7 @@ class RegistrationWindow extends Window implements SaveServerAddress {
             void actionPerformed(ActionEvent e) {
                 log.info('clicked register button')
                 String username = usernameField.getText()
-                String password = passField.getPassword()
+                String password = passwordField.getPassword()
                 String passwordConfirm = passConfirmField.getPassword()
                 if (password != passwordConfirm) {
                     JOptionPane.showMessageDialog(frame, "Passwords does not match.")
@@ -85,19 +115,18 @@ class RegistrationWindow extends Window implements SaveServerAddress {
             }
         })
 
-        panel.add(serverAddressLabel) // Components Added using Flow Layout
-        panel.add(serverAddressField)
-        panel.add(usernameLabel) // Components Added using Flow Layout
-        panel.add(usernameField)
-        panel.add(passLabel)
-        panel.add(passField)
-        panel.add(passConfirmLabel)
-        panel.add(passConfirmField)
-        panel.add(backButton)
-        panel.add(registerButton)
+        controlsPanel.add(backButton)
+        controlsPanel.add(registerButton)
 
-        // Adding Components to the frame.
-        frame.getContentPane().add(BorderLayout.CENTER, panel)
+        // Adding components to main panel
+        mainPanel.add(serverPanel)
+        mainPanel.add(usernamePanel)
+        mainPanel.add(passwordPanel)
+        mainPanel.add(passConfirmPanel)
+        mainPanel.add(controlsPanel)
+
+        // Adding main panel to the frame
+        frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
         frame.setVisible(true)
     }
 

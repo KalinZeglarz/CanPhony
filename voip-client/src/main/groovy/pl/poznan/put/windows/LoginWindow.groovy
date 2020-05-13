@@ -21,46 +21,60 @@ class LoginWindow extends Window implements SaveServerAddress {
     }
 
     void create(JFrame frame) {
+
         // Cleaning frame
         frame.getContentPane().removeAll()
         frame.repaint()
+        frame.setSize(420, 180)
 
-        // Creating the panel for components
-        JPanel panel = new JPanel()
-        panel.setLayout(new FlowLayout(FlowLayout.RIGHT))
+        // Main panel
+        JPanel mainPanel = new JPanel()
+        mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
 
-        JLabel serverAddressLabel = new JLabel("Server Address")
-        serverAddressLabel.setHorizontalAlignment(SwingConstants.RIGHT)
-        JTextField serverAddressField = new JTextField(16)
-        serverAddressField.setText(serverAddress)
+        // Server
+        JPanel serverPanel = new JPanel()
+
+        JLabel serverAddressLabel = new JLabel("           Server:")
+        JTextField serverAddressField = new JTextField(8)
         serverAddressLabel.setLabelFor(serverAddressField)
 
-        JLabel usernameLabel = new JLabel("Username")
-        usernameLabel.setHorizontalAlignment(SwingConstants.RIGHT)
-        JTextField usernameField = new JTextField(16)
-        usernameLabel.setLabelFor(usernameField)
+        JLabel serverPortLabel = new JLabel("      Port:")
+        JTextField serverPortField = new JTextField(4)
+        serverPortLabel.setLabelFor(serverPortField)
 
-        JLabel passLabel = new JLabel("Password")
-        JPasswordField passField = new JPasswordField(16)
-        passLabel.setLabelFor(passField)
+        serverPanel.add(serverAddressLabel)
+        serverPanel.add(serverAddressField)
+        serverPanel.add(serverPortLabel)
+        serverPanel.add(serverPortField)
 
-        JButton displayPassButton = new JButton("Display Password")
-        displayPassButton.setLayout((new FlowLayout(FlowLayout.LEFT)))
-        displayPassButton.addActionListener(new ActionListener() {
-            @Override
-            void actionPerformed(ActionEvent e) {
-                log.info('clicked display password button')
-                String password = passField.getPassword()
-                JOptionPane.showMessageDialog(frame, "Password: " + password)
-            }
-        })
+        // Username
+        JPanel usernamePanel = new JPanel()
+
+        JLabel usernameLabel = new JLabel("     Username:")
+        JTextField usernameField = new JTextField(18)
+
+        usernamePanel.add(usernameLabel)
+        usernamePanel.add(usernameField)
+
+        // Password
+        JPanel passwordPanel = new JPanel()
+
+        JLabel passwordLabel = new JLabel("      Password:")
+        JPasswordField passwordField = new JPasswordField(18)
+
+        passwordPanel.add(passwordLabel)
+        passwordPanel.add(passwordField)
+
+        // Controls
+        JPanel controlsPanel = new JPanel()
+        controlsPanel.setLayout(new GridLayout(1,2))
 
         JButton registerButton = new JButton("Register")
         registerButton.addActionListener(new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked register button')
-                serverAddress = saveServerAddress(serverAddressField.getText())
+                serverAddress = saveServerAddress(serverAddressField.getText()+":"+serverPortField.getText())
                 new RegistrationWindow(serverAddress).create(frame)
             }
         })
@@ -71,16 +85,16 @@ class LoginWindow extends Window implements SaveServerAddress {
             void actionPerformed(ActionEvent e) {
                 log.info('clicked login button')
                 String username = usernameField.getText()
-                String password = passField.getPassword()
+                String password = passwordField.getPassword()
                 try {
-                    httpClient = new VoipHttpClient(serverAddressField.getText())
+                    httpClient = new VoipHttpClient(serverAddressField.getText()+":"+serverPortField.getText())
                 } catch (ConnectException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
                 }
                 LoginResponse loginResponse = httpClient.login(username, password)
                 if (loginResponse != null) {
-                    serverAddress = saveServerAddress(serverAddressField.getText())
+                    serverAddress = saveServerAddress(serverAddressField.getText()+":"+serverPortField.getText())
                     httpClient.username = username
                     RedisClient redisClient = new RedisClient(loginResponse.subPubHost)
                     new ConnectionWindow(httpClient, redisClient).create(frame)
@@ -90,18 +104,17 @@ class LoginWindow extends Window implements SaveServerAddress {
             }
         })
 
-        panel.add(serverAddressLabel) // Components Added using Flow Layout
-        panel.add(serverAddressField)
-        panel.add(usernameLabel)
-        panel.add(usernameField)
-        panel.add(passLabel)
-        panel.add(passField)
-        panel.add(displayPassButton)
-        panel.add(registerButton)
-        panel.add(loginButton)
+        controlsPanel.add(registerButton)
+        controlsPanel.add(loginButton)
 
-        // Adding Components to the frame.
-        frame.getContentPane().add(BorderLayout.CENTER, panel)
+        // Adding components to main panel
+        mainPanel.add(serverPanel)
+        mainPanel.add(usernamePanel)
+        mainPanel.add(passwordPanel)
+        mainPanel.add(controlsPanel)
+
+        // Adding main panel to the frame
+        frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
         frame.setVisible(true)
     }
 

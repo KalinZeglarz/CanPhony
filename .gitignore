@@ -26,3 +26,6 @@ hs_err_pid*
 target/
 /out/
 *.iml
+canphony.db
+clientConfig.json
+sqlite-ddl.sql

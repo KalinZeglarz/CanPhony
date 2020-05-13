@@ -1,16 +1,16 @@
 package pl.poznan.put
 
-
 import groovy.util.logging.Slf4j
 import org.json.JSONObject
+import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
 import pl.poznan.put.windows.LoginWindow
 
 import javax.swing.*
 
 @Slf4j
-class GUI extends JFrame   {
+class GUI extends JFrame {
 
-    GUI(){
+    GUI() {
         super("CanPhony")
     }
 
@@ -28,11 +28,20 @@ class GUI extends JFrame   {
     }
 
     static void main(String[] args) throws InterruptedException {
-        GUI gui = new GUI()
-        gui.setSize(320, 200)
-        gui.setLocationRelativeTo()
-        log.info("starting gui client")
-        gui.start()
+        setDefaultLookAndFeelDecorated(true)
+        SwingUtilities.invokeLater {
+            try {
+                UIManager.setLookAndFeel(SubstanceNightShadeLookAndFeel.class.getCanonicalName())
+            } catch (Exception ignored) {
+                log.error("Substance Graphite failed to initialize")
+                System.exit(1)
+            }
+            GUI gui = new GUI()
+            gui.setSize(320, 200)
+            gui.setLocationRelativeTo()
+            log.info("starting gui client")
+            gui.start()
+        }
     }
 
 }

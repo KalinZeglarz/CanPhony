@@ -2,9 +2,7 @@
 <Configuration status="INFO">
     <Properties>
         <Property name="LOG_PATTERN">
-            %d{yyyy-MM-dd HH:mm:ss.SSS} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=RED, ERROR=RED, WARN=Yellow,
-            INFO=Green, DEBUG=Green, TRACE=Green} %style{%pid}{Magenta} --- [%16.16t] %style{%-40.40c{1.}}{Cyan} :
-            %m%n%ex
+            %d{yyyy-MM-dd HH:mm:ss.SSS} %highlight{${LOG_LEVEL_PATTERN:-%5p}}{FATAL=RED, ERROR=RED, WARN=Yellow, INFO=Green, DEBUG=Green, TRACE=Green} %style{%pid}{Magenta} --- [%16.16t] %style{%-40.40c{1.}}{Cyan} : %m%n%ex
         </Property>
     </Properties>
     <Appenders>

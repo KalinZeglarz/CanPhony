@@ -6,6 +6,7 @@ import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
 import pl.poznan.put.windows.LoginWindow
 
 import javax.swing.*
+import java.awt.*
 
 @Slf4j
 class GUI extends JFrame {
@@ -37,6 +38,7 @@ class GUI extends JFrame {
                 System.exit(1)
             }
             GUI gui = new GUI()
+            gui.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource('/gui/icon.png')))
             gui.setSize(320, 200)
             gui.setLocationRelativeTo()
             log.info("starting gui client")

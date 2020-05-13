@@ -12,8 +12,8 @@
     <artifactId>voip-server</artifactId>
 
     <properties>
-        <voip-commons.version>1.0</voip-commons.version>
         <spring-boot.version>2.2.6.RELEASE</spring-boot.version>
+        <voip-commons.version>1.0</voip-commons.version>
         <sqlite-jdbc.version>3.30.1</sqlite-jdbc.version>
     </properties>
 

@@ -12,29 +12,20 @@
     <artifactId>voip-client</artifactId>
 
     <properties>
-        <voip-commons.version>1.0</voip-commons.version>
         <slf4j2.version>2.13.2</slf4j2.version>
-        <radiance-substance.version>2.5.1</radiance-substance.version>
     </properties>
 
     <dependencies>
         <dependency>
             <groupId>pl.poznan.put</groupId>
             <artifactId>voip-commons</artifactId>
-            <version>${voip-commons.version}</version>
+            <version>1.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-slf4j-impl</artifactId>
             <version>${slf4j2.version}</version>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.pushing-pixels/radiance-substance -->
-        <dependency>
-            <groupId>org.pushing-pixels</groupId>
-            <artifactId>radiance-substance</artifactId>
-            <version>${radiance-substance.version}</version>
         </dependency>
     </dependencies>
 

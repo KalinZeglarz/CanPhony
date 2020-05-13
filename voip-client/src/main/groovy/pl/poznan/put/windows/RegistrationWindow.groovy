@@ -46,6 +46,11 @@ class RegistrationWindow extends Window implements SaveServerAddress {
         serverPortField.setText(serverPort)
         serverPortLabel.setLabelFor(serverPortField)
 
+        serverPanel.add(serverAddressLabel)
+        serverPanel.add(serverAddressField)
+        serverPanel.add(serverPortLabel)
+        serverPanel.add(serverPortField)
+
         // Username
         JPanel usernamePanel = new JPanel()
 
@@ -83,8 +88,11 @@ class RegistrationWindow extends Window implements SaveServerAddress {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked back button')
-                saveServerAddress(serverAddressField.getText(), serverPortField.getText())
-                new LoginWindow(serverAddress).create(frame)
+                String[] configs = [serverAddressField.getText(), serverPortField.getText()]
+                serverAddress = saveServerAddress(configs)[0]
+                serverPort = saveServerAddress(configs)[1]
+                saveServerAddress(configs)
+                new LoginWindow(configs).create(frame)
             }
         })
 
@@ -109,8 +117,9 @@ class RegistrationWindow extends Window implements SaveServerAddress {
                 boolean registered = httpClient.register(username, password)
                 if (registered) {
                     JOptionPane.showMessageDialog(frame, "Account created successfully.")
-                    saveServerAddress(serverAddressField.getText(), serverPortField.getText())
-                    new LoginWindow(serverAddress).create(frame)
+                    String[] configs = [serverAddressField.getText(), serverPortField.getText()]
+                    saveServerAddress(configs)
+                    new LoginWindow(configs).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, "Incorrect login or password.")
                 }

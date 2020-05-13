@@ -80,8 +80,10 @@ class LoginWindow extends Window implements SaveServerAddress {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked register button')
-                serverAddress = saveServerAddress(serverAddressField.getText(), serverPortField.getText())
-                new RegistrationWindow(serverAddress, serverPort).create(frame)
+                String[] configs = [serverAddressField.getText(), serverPortField.getText()]
+                serverAddress = saveServerAddress(configs)[0]
+                serverPort = saveServerAddress(configs)[1]
+                new RegistrationWindow(configs).create(frame)
             }
         })
 
@@ -100,7 +102,11 @@ class LoginWindow extends Window implements SaveServerAddress {
                 }
                 LoginResponse loginResponse = httpClient.login(username, password)
                 if (loginResponse != null) {
-                    serverAddress = saveServerAddress(serverAddressField.getText(), serverPortField.getText())
+                    String[] configs = [serverAddressField.getText(), serverPortField.getText()]
+
+                    serverAddress = saveServerAddress(configs)[0]
+                    serverPort = saveServerAddress(configs)[1]
+
                     httpClient.username = username
                     RedisClient redisClient = new RedisClient(loginResponse.subPubHost)
                     new ConnectionWindow(httpClient, redisClient).create(frame)

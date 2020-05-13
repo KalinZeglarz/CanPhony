@@ -111,6 +111,7 @@ class ConnectionWindow extends Window {
         frame.getContentPane().removeAll()
         frame.repaint()
         frame.setSize(420, 350)
+        
         // Main panel
         JPanel mainPanel = new JPanel()
         mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))

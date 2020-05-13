@@ -6,6 +6,7 @@ import org.json.JSONObject
 import pl.poznan.put.windows.LoginWindow
 
 import javax.swing.*
+import java.awt.*
 
 @Slf4j
 class GUI extends JFrame   {
@@ -31,11 +32,21 @@ class GUI extends JFrame   {
     }
 
     static void main(String[] args) throws InterruptedException {
-        GUI gui = new GUI()
-        gui.setSize(320, 200)
-        gui.setLocationRelativeTo()
-        log.info("starting gui client")
-        gui.start()
+        setDefaultLookAndFeelDecorated(true)
+        SwingUtilities.invokeLater {
+            try {
+                UIManager.setLookAndFeel(SubstanceNightShadeLookAndFeel.class.getCanonicalName())
+            } catch (Exception ignored) {
+                log.error("Substance Graphite failed to initialize")
+                System.exit(1)
+            }
+            GUI gui = new GUI()
+            gui.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource('/gui/icon.png')))
+            gui.setSize(320, 200)
+            gui.setLocationRelativeTo()
+            log.info("starting gui client")
+            gui.start()
+        }
     }
 
 }

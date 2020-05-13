@@ -1,15 +1,9 @@
 package pl.poznan.put.managers
 
 import groovy.util.logging.Slf4j
-import org.apache.groovy.sql.extensions.SqlExtensions
 import pl.poznan.put.structures.LoginRequest
 
-import java.sql.Connection
-import java.sql.DriverManager
-import java.sql.PreparedStatement
-import java.sql.ResultSet
-import java.sql.SQLException
-import java.util.concurrent.ThreadLocalRandom
+import java.sql.*
 
 @Slf4j
 class DatabaseManager {
@@ -76,4 +70,17 @@ class DatabaseManager {
         }
     }
 
+    static Set<String> getUserList() {
+        Set<String> result = []
+        try (Connection conn = DriverManager.getConnection(dbUrl)) {
+            String query = "select username from accounts"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            try (ResultSet resultSet = prepareStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    result.add(resultSet.getString(1))
+                }
+            }
+        }
+        return result
+    }
 }

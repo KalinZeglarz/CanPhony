@@ -4,9 +4,10 @@ package pl.poznan.put
 import groovy.util.logging.Slf4j
 import org.json.JSONObject
 import pl.poznan.put.windows.LoginWindow
+import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
 
 import javax.swing.*
-import java.awt.*
+import java.awt.Toolkit
 
 @Slf4j
 class GUI extends JFrame   {

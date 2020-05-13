@@ -15,9 +15,11 @@ class LoginWindow extends Window implements SaveServerAddress {
 
     private VoipHttpClient httpClient
     private String serverAddress = ''
+    private String serverPort = ''
 
-    LoginWindow(String serverAddress) {
-        this.serverAddress = serverAddress
+    LoginWindow(String[] configs) {
+        this.serverAddress = configs[0]
+        this.serverPort = configs[1]
     }
 
     void create(JFrame frame) {
@@ -35,11 +37,15 @@ class LoginWindow extends Window implements SaveServerAddress {
         JPanel serverPanel = new JPanel()
 
         JLabel serverAddressLabel = new JLabel("           Server:")
+        serverAddressLabel.setHorizontalAlignment(SwingConstants.RIGHT)
         JTextField serverAddressField = new JTextField(8)
+        serverAddressField.setText(serverAddress)
         serverAddressLabel.setLabelFor(serverAddressField)
 
         JLabel serverPortLabel = new JLabel("      Port:")
+        serverPortLabel.setHorizontalAlignment(SwingConstants.RIGHT)
         JTextField serverPortField = new JTextField(4)
+        serverPortField.setText(serverPort)
         serverPortLabel.setLabelFor(serverPortField)
 
         serverPanel.add(serverAddressLabel)
@@ -74,8 +80,8 @@ class LoginWindow extends Window implements SaveServerAddress {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked register button')
-                serverAddress = saveServerAddress(serverAddressField.getText()+":"+serverPortField.getText())
-                new RegistrationWindow(serverAddress).create(frame)
+                serverAddress = saveServerAddress(serverAddressField.getText(), serverPortField.getText())
+                new RegistrationWindow(serverAddress, serverPort).create(frame)
             }
         })
 
@@ -87,14 +93,14 @@ class LoginWindow extends Window implements SaveServerAddress {
                 String username = usernameField.getText()
                 String password = passwordField.getPassword()
                 try {
-                    httpClient = new VoipHttpClient(serverAddressField.getText()+":"+serverPortField.getText())
+                    httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
                 } catch (ConnectException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
                 }
                 LoginResponse loginResponse = httpClient.login(username, password)
                 if (loginResponse != null) {
-                    serverAddress = saveServerAddress(serverAddressField.getText()+":"+serverPortField.getText())
+                    serverAddress = saveServerAddress(serverAddressField.getText(), serverPortField.getText())
                     httpClient.username = username
                     RedisClient redisClient = new RedisClient(loginResponse.subPubHost)
                     new ConnectionWindow(httpClient, redisClient).create(frame)

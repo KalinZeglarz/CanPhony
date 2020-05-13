@@ -18,13 +18,16 @@ class GUI extends JFrame   {
         new LoginWindow(readServerAddress()).create(this)
     }
 
-    static String readServerAddress() {
+    static String[] readServerAddress() {
         File configFile = new File('clientConfig.json')
         if (!configFile.exists()) {
-            return ''
+            String [] blank = ['','']
+            return blank
         }
         JSONObject configJson = new JSONObject(configFile.getText())
-        return configJson.getString('serverAddress')
+        String[] configs = [configJson.getString('serverAddress'), configJson.getString('serverPort')]
+        System.out.println(configs)
+        return configs
     }
 
     static void main(String[] args) throws InterruptedException {

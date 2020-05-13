@@ -13,10 +13,13 @@ class RegistrationWindow extends Window implements SaveServerAddress {
 
     private VoipHttpClient httpClient
     private String serverAddress = ''
+    private String serverPort = ''
 
-    RegistrationWindow(String serverAddress) {
-        this.serverAddress = serverAddress
+    RegistrationWindow(String[] configs) {
+        this.serverAddress = configs[0]
+        this.serverPort = configs[1]
     }
+
 
     void create(JFrame frame) {
         // Cleaning frame
@@ -32,17 +35,16 @@ class RegistrationWindow extends Window implements SaveServerAddress {
         JPanel serverPanel = new JPanel()
 
         JLabel serverAddressLabel = new JLabel("           Server:")
+        serverAddressLabel.setHorizontalAlignment(SwingConstants.RIGHT)
         JTextField serverAddressField = new JTextField(8)
+        serverAddressField.setText(serverAddress)
         serverAddressLabel.setLabelFor(serverAddressField)
 
         JLabel serverPortLabel = new JLabel("      Port:")
+        serverPortLabel.setHorizontalAlignment(SwingConstants.RIGHT)
         JTextField serverPortField = new JTextField(4)
+        serverPortField.setText(serverPort)
         serverPortLabel.setLabelFor(serverPortField)
-
-        serverPanel.add(serverAddressLabel)
-        serverPanel.add(serverAddressField)
-        serverPanel.add(serverPortLabel)
-        serverPanel.add(serverPortField)
 
         // Username
         JPanel usernamePanel = new JPanel()
@@ -81,7 +83,7 @@ class RegistrationWindow extends Window implements SaveServerAddress {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked back button')
-                saveServerAddress(serverAddressField.getText()+":"+serverPortField.getText())
+                saveServerAddress(serverAddressField.getText(), serverPortField.getText())
                 new LoginWindow(serverAddress).create(frame)
             }
         })
@@ -99,7 +101,7 @@ class RegistrationWindow extends Window implements SaveServerAddress {
                     return
                 }
                 try {
-                    httpClient = new VoipHttpClient(serverAddressField.getText()+":"+serverPortField.getText())
+                    httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
                 } catch (ConnectException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
@@ -107,7 +109,7 @@ class RegistrationWindow extends Window implements SaveServerAddress {
                 boolean registered = httpClient.register(username, password)
                 if (registered) {
                     JOptionPane.showMessageDialog(frame, "Account created successfully.")
-                    saveServerAddress(serverAddressField.getText()+":"+serverPortField.getText())
+                    saveServerAddress(serverAddressField.getText(), serverPortField.getText())
                     new LoginWindow(serverAddress).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, "Incorrect login or password.")

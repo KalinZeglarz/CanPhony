@@ -3,11 +3,11 @@ package pl.poznan.put
 
 import groovy.util.logging.Slf4j
 import org.json.JSONObject
-import pl.poznan.put.windows.LoginWindow
+import pl.poznan.put.windows.LoggedOutWindow
 import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
 
 import javax.swing.*
-import java.awt.Toolkit
+import javax.swing.plaf.FontUIResource
 
 @Slf4j
 class GUI extends JFrame   {
@@ -17,7 +17,7 @@ class GUI extends JFrame   {
     }
 
     void start() {
-        new LoginWindow(readServerAddress()).create(this)
+        new LoggedOutWindow(readServerAddress()).create(this)
     }
 
     static String[] readServerAddress() {
@@ -32,11 +32,22 @@ class GUI extends JFrame   {
         return configs
     }
 
+    static void setUIFont (FontUIResource f){
+        Enumeration keys = UIManager.getDefaults().keys()
+        while (keys.hasMoreElements()) {
+            Object key = keys.nextElement()
+            Object value = UIManager.get (key)
+            if (value instanceof FontUIResource)
+                UIManager.put (key, f)
+        }
+    }
+
     static void main(String[] args) throws InterruptedException {
         setDefaultLookAndFeelDecorated(true)
         SwingUtilities.invokeLater {
             try {
                 UIManager.setLookAndFeel(SubstanceNightShadeLookAndFeel.class.getCanonicalName())
+                //setUIFont (new FontUIResource("Helvetica", Font.BOLD,12))
             } catch (Exception ignored) {
                 log.error("Substance Graphite failed to initialize")
                 System.exit(1)

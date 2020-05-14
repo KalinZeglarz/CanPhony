@@ -22,7 +22,7 @@ import java.awt.event.ActionListener
 import static pl.poznan.put.subpub.MessageAction.*
 
 @Slf4j
-class ConnectionWindow extends Window {
+class LoggedInWindow extends Window {
 
     private static final int USER_LIST_REQUEST_PERIOD = 30000
 
@@ -34,7 +34,7 @@ class ConnectionWindow extends Window {
     Integer currentSessionId = null
     Thread userListListener
 
-    ConnectionWindow(VoipHttpClient httpClient, RedisClient redisClient) {
+    LoggedInWindow(VoipHttpClient httpClient, RedisClient redisClient) {
         this.httpClient = httpClient
         this.redisClient = redisClient
         username = httpClient.username
@@ -142,18 +142,6 @@ class ConnectionWindow extends Window {
         TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(model)
         contactsTable.setRowSorter(sorter)
 
-        userListListener = new Thread({
-            while (!Thread.currentThread().isInterrupted()) {
-                Set<String> userList = this.httpClient.getUserList()
-                model.setRowCount(0)
-                for (String user in userList) {
-                    model.addRow(user)
-                }
-                sleep(USER_LIST_REQUEST_PERIOD)
-            }
-        })
-        userListListener.start()
-
         JScrollPane scrollPane = new JScrollPane(contactsTable)
         scrollPane.setPreferredSize(new Dimension(350, 150))
         contactsPanel.add(scrollPane)
@@ -168,35 +156,45 @@ class ConnectionWindow extends Window {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked connect button")
-                if (!searchField.getText().isEmpty()) {
-                    PhoneCallResponse response = httpClient.startCall(searchField.getText())
-                    currentSessionId = response.sessionId
-                    redisStartCallSubscribe(response)
-                }
+
+                // Get selected user
+                int column = 0
+                int row = contactsTable.getSelectedRow()
+                String[] usersToCall = [contactsTable.getModel().getValueAt(row, column).toString()]
+                // Try to connect
+//                PhoneCallResponse response = httpClient.startCall(usersToCall[0])
+//                currentSessionId = response.sessionId
+//                redisStartCallSubscribe(response)
+                new CallWindow(httpClient, redisClient, usersToCall).create(frame)
             }
         })
 
-        JButton disconnectButton = new JButton("Disconnect")
-        disconnectButton.addActionListener(new ActionListener() {
+        JButton logOutButton = new JButton("Log Out")
+        logOutButton.addActionListener(new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked disconnect button")
-                if (phoneCallClient != null) {
-                    redisClient.unsubscribe(currentSessionId)
-                    redisClient.publishMessage(currentSessionId, MessageFactory.createMessage(END_CALL, username))
-                    phoneCallClient.stop()
-                    phoneCallClient = null
-                    currentSessionId = null
-                    redisCallRequestSubscribe(httpClient.username)
-                } else {
-                    log.warn('phone call client is not assigned')
-                }
+                String[] configs = ['0.0.0.0','8080']
+                new LoggedOutWindow(configs).create(frame)
+
             }
         })
         controlsPanel.add(connectButton)
-        controlsPanel.add(disconnectButton)
+        controlsPanel.add(logOutButton)
 
-        // Listener
+        // Listeners
+        userListListener = new Thread({
+            while (!Thread.currentThread().isInterrupted()) {
+                Set<String> userList = this.httpClient.getUserList()
+                model.setRowCount(0)
+                for (String user in userList) {
+                    model.addRow(user)
+                }
+                sleep(USER_LIST_REQUEST_PERIOD)
+            }
+        })
+        userListListener.start()
+
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             void changedUpdate(DocumentEvent e) {
                 filter()

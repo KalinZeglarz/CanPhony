@@ -92,7 +92,7 @@ class RegistrationWindow extends Window implements SaveServerAddress {
                 serverAddress = saveServerAddress(configs)[0]
                 serverPort = saveServerAddress(configs)[1]
                 saveServerAddress(configs)
-                new LoginWindow(configs).create(frame)
+                new LoggedOutWindow(configs).create(frame)
             }
         })
 
@@ -119,7 +119,7 @@ class RegistrationWindow extends Window implements SaveServerAddress {
                     JOptionPane.showMessageDialog(frame, "Account created successfully.")
                     String[] configs = [serverAddressField.getText(), serverPortField.getText()]
                     saveServerAddress(configs)
-                    new LoginWindow(configs).create(frame)
+                    new LoggedOutWindow(configs).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, "Incorrect login or password.")
                 }

@@ -11,13 +11,13 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 
 @Slf4j
-class LoginWindow extends Window implements SaveServerAddress {
+class LoggedOutWindow extends Window implements SaveServerAddress {
 
     private VoipHttpClient httpClient
     private String serverAddress = ''
     private String serverPort = ''
 
-    LoginWindow(String[] configs) {
+    LoggedOutWindow(String[] configs) {
         this.serverAddress = configs[0]
         this.serverPort = configs[1]
     }
@@ -109,7 +109,7 @@ class LoginWindow extends Window implements SaveServerAddress {
 
                     httpClient.username = username
                     RedisClient redisClient = new RedisClient(loginResponse.subPubHost)
-                    new ConnectionWindow(httpClient, redisClient).create(frame)
+                    new LoggedInWindow(httpClient, redisClient).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, "Incorrect login or password.")
                 }

@@ -3,6 +3,8 @@ package pl.poznan.put.windows
 import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.structures.LoginResponse
+import pl.poznan.put.subpub.RedisClient
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -11,56 +13,52 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 
 @Slf4j
-class RegistrationWindow extends Window implements SaveClientConfig {
+class LoggedOutWindow extends Window implements SaveClientConfig {
 
     JTextField serverAddressField
     JTextField serverPortField
     JTextField usernameField
     JPasswordField passwordField
-    JPasswordField passConfirmField
 
-    RegistrationWindow(ClientConfig config) {
+    LoggedOutWindow(ClientConfig config) {
         super(config)
     }
 
-    private ActionListener createBackButtonListener() {
+    private ActionListener createRegisterButtonListener() {
         return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info('clicked back button')
+                log.info('clicked register button')
                 config.serverAddress = serverAddressField.getText()
                 config.serverPort = serverPortField.getText()
-                writeConfigToFile(config)
-                new LoggedOutWindow(config).create(frame)
+                new RegistrationWindow(config).create(frame)
             }
         }
     }
 
-    private ActionListener createRegisterButtonListener() {
-        new ActionListener() {
+    private ActionListener createLoginButtonListener() {
+        return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info('clicked register button')
+                log.info('clicked login button')
                 String username = usernameField.getText()
                 String password = passwordField.getPassword()
-                String passwordConfirm = passConfirmField.getPassword()
-                if (password != passwordConfirm) {
-                    JOptionPane.showMessageDialog(frame, "Passwords does not match.")
-                    return
-                }
                 try {
                     config.httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
                 } catch (ConnectException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
                 }
-                boolean registered = config.httpClient.register(username, password)
-                if (registered) {
-                    JOptionPane.showMessageDialog(frame, "Account created successfully.")
+                LoginResponse loginResponse = config.httpClient.login(username, password)
+                if (loginResponse != null) {
                     config.serverAddress = serverAddressField.getText()
                     config.serverPort = serverPortField.getText()
+                    config.username = usernameField.getText()
                     writeConfigToFile(config)
-                    new LoggedOutWindow(config).create(frame)
+
+                    config.httpClient.username = username
+                    config.redisClient = new RedisClient(loginResponse.subPubHost)
+                    new LoggedInWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, "Incorrect login or password.")
                 }
@@ -86,7 +84,6 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         serverPanel.add(serverAddressField)
         serverPanel.add(serverPortLabel)
         serverPanel.add(serverPortField)
-
         return serverPanel
     }
 
@@ -110,28 +107,17 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         return passwordPanel
     }
 
-    private JPanel createPasswordConfirmPanel() {
-        JLabel passConfirmLabel = new JLabel("Re-password:")
-        passConfirmField = new JPasswordField(18)
-        passConfirmLabel.setLabelFor(passwordField)
-
-        JPanel passConfirmPanel = new JPanel()
-        passConfirmPanel.add(passConfirmLabel)
-        passConfirmPanel.add(passConfirmField)
-        return passConfirmPanel
-    }
-
     private JPanel createControlsPanel() {
-        JButton backButton = new JButton("Back")
-        backButton.addActionListener(createBackButtonListener())
-
         JButton registerButton = new JButton("Register")
         registerButton.addActionListener(createRegisterButtonListener())
 
+        JButton loginButton = new JButton("Login")
+        loginButton.addActionListener(createLoginButtonListener())
+
         JPanel controlsPanel = new JPanel()
         controlsPanel.setLayout(new GridLayout(1, 2))
-        controlsPanel.add(backButton)
         controlsPanel.add(registerButton)
+        controlsPanel.add(loginButton)
         return controlsPanel
     }
 
@@ -140,7 +126,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         SwingUtilities.invokeLater {
             frame.getContentPane().removeAll()
             frame.repaint()
-            frame.setSize(420, 220)
+            frame.setSize(420, 180)
             frame.setResizable(false)
 
             JPanel mainPanel = new JPanel()
@@ -148,7 +134,6 @@ class RegistrationWindow extends Window implements SaveClientConfig {
             mainPanel.add(createServerPanel())
             mainPanel.add(createUsernamePanel())
             mainPanel.add(createPasswordPanel())
-            mainPanel.add(createPasswordConfirmPanel())
             mainPanel.add(createControlsPanel())
 
             frame.getContentPane().add(BorderLayout.CENTER, mainPanel)

@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
-import pl.poznan.put.managers.DatabaseManager
 import pl.poznan.put.managers.PhoneCallManager
 import pl.poznan.put.structures.PhoneCallParamsFactory
 import pl.poznan.put.structures.PhoneCallRequest
@@ -24,11 +23,9 @@ class PhoneCallController {
     @ResponseBody
     ResponseEntity<PhoneCallResponse> call(@RequestBody PhoneCallRequest phoneCallRequest) {
         log.info("received call request: " + phoneCallRequest.toJSON().toString())
-        String sourceUserAddress = DatabaseManager.getUserAddress(phoneCallRequest.sourceUsername)
-        String targetUserAddress = DatabaseManager.getUserAddress(phoneCallRequest.targetUsername)
 
         Tuple2<PhoneCallResponse, PhoneCallResponse> phoneCallResponses = PhoneCallManager
-                .addPhoneCall(PhoneCallParamsFactory.createPhoneCallParams(sourceUserAddress, targetUserAddress))
+                .addPhoneCall(PhoneCallParamsFactory.createPhoneCallParams(phoneCallRequest))
 
         Message message = MessageFactory.createMessage(MessageAction.CALL_REQUEST, phoneCallResponses.getItem2())
         SubPubManager.redisClient.publishMessage(phoneCallRequest.targetUsername, message)

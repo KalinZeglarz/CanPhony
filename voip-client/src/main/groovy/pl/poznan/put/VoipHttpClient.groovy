@@ -18,8 +18,8 @@ class VoipHttpClient {
             .version(HttpClient.Version.HTTP_2)
             .build()
 
-    VoipHttpClient(String serverAddress) throws ConnectException {
-        this.serverAddress = serverAddress
+    VoipHttpClient(String serverAddress, String serverPort) throws ConnectException {
+        this.serverAddress = serverAddress + ":" + serverPort
         checkConnection()
     }
 

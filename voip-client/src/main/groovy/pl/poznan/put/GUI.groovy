@@ -1,9 +1,9 @@
 package pl.poznan.put
 
 import groovy.util.logging.Slf4j
-import org.json.JSONObject
 import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
-import pl.poznan.put.windows.LoginWindow
+import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.windows.LoggedOutWindow
 
 import javax.swing.*
 import java.awt.*
@@ -16,16 +16,15 @@ class GUI extends JFrame {
     }
 
     void start() {
-        new LoginWindow(readServerAddress()).create(this)
+        new LoggedOutWindow(readServerAddress()).create(this)
     }
 
-    static String readServerAddress() {
+    static ClientConfig readServerAddress() {
         File configFile = new File('clientConfig.json')
         if (!configFile.exists()) {
-            return ''
+            return new ClientConfig()
         }
-        JSONObject configJson = new JSONObject(configFile.getText())
-        return configJson.getString('serverAddress')
+        return ClientConfig.parseJSON(configFile.getText())
     }
 
     static void main(String[] args) throws InterruptedException {
@@ -34,7 +33,7 @@ class GUI extends JFrame {
             try {
                 UIManager.setLookAndFeel(SubstanceNightShadeLookAndFeel.class.getCanonicalName())
             } catch (Exception ignored) {
-                log.error("Substance Graphite failed to initialize")
+                log.error("Substance failed to initialize")
                 System.exit(1)
             }
             GUI gui = new GUI()

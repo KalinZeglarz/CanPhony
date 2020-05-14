@@ -5,6 +5,7 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
 import pl.poznan.put.structures.LoginRequest
 
+
 import java.sql.*
 
 @Slf4j

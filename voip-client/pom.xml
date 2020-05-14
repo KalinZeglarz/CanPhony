@@ -30,7 +30,6 @@
             <version>${slf4j2.version}</version>
         </dependency>
 
-        <!-- https://mvnrepository.com/artifact/org.pushing-pixels/radiance-substance -->
         <dependency>
             <groupId>org.pushing-pixels</groupId>
             <artifactId>radiance-substance</artifactId>

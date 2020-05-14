@@ -120,7 +120,7 @@ class LoggedInWindow extends Window {
         // Username
         JPanel usernamePanel = new JPanel()
         usernamePanel.setPreferredSize(new Dimension(400, 20))
-        JLabel yourUsernameLabel = new JLabel("Logged in as: " + username)
+        JLabel yourUsernameLabel = new JLabel("Logged in as: [" + username +"]")
         usernamePanel.add(yourUsernameLabel)
 
         // Search

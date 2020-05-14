@@ -2,11 +2,10 @@ package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.PhoneCallClient
-import pl.poznan.put.VoipHttpClient
+import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.subpub.Message
 import pl.poznan.put.subpub.MessageFactory
-import pl.poznan.put.subpub.RedisClient
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -25,168 +24,101 @@ import static pl.poznan.put.subpub.MessageAction.*
 class LoggedInWindow extends Window {
 
     private static final int USER_LIST_REQUEST_PERIOD = 30000
+    private Thread userListListener
 
-    final String username
-    final String serverAddress
-    final VoipHttpClient httpClient
-    final RedisClient redisClient
-    PhoneCallClient phoneCallClient = null
-    Integer currentSessionId = null
-    Thread userListListener
+    JTextField searchField
+    DefaultTableModel model
+    JTable contactsTable
+    TableRowSorter<TableModel> sorter
 
-    LoggedInWindow(VoipHttpClient httpClient, RedisClient redisClient) {
-        this.httpClient = httpClient
-        this.redisClient = redisClient
-        username = httpClient.username
-        serverAddress = httpClient.serverAddress.split(':')[0]
-        redisCallRequestSubscribe(httpClient.username)
+    LoggedInWindow(ClientConfig config) {
+        super(config)
+        redisCallRequestSubscribe(this.config.username)
     }
 
     private void redisCallRequestSubscribe(String username) {
         log.info("[${username}] subscribing with call request callback")
-        redisClient.subscribeChannel(username) { String channelName, String messageString ->
+        config.redisClient.subscribeChannel(username) { String channelName, String messageString ->
             Message message = Message.parseJSON(messageString)
             if (message.sender == username) {
                 return
             }
-            if (message.action == CALL_REQUEST && phoneCallClient == null) {
+            if (message.action == CALL_REQUEST && config.phoneCallClient == null) {
                 log.info("[${channelName}] received call request: " + message.content)
-                redisClient.unsubscribe(username)
+                config.redisClient.unsubscribe(username)
                 PhoneCallResponse phoneCallResponse = PhoneCallResponse.parseJSON(message.content)
-                currentSessionId = phoneCallResponse.sessionId
+                config.currentSessionId = phoneCallResponse.sessionId
 
-                redisEndCallSubscribe(currentSessionId)
-                redisClient.publishMessage(currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
-                phoneCallClient = new PhoneCallClient(serverAddress, phoneCallResponse.forwarderPort)
-                phoneCallClient.start()
-            }
-        }
-    }
-
-    private void redisEndCallSubscribe(int sessionId) {
-        log.info("[${sessionId}] subscribing with end call callback")
-        redisClient.subscribeChannel(sessionId.toString()) { String channelName, String messageString ->
-            Message message = Message.parseJSON(messageString)
-            if (message.sender == username) {
-                return
-            }
-            if (message.action == END_CALL && phoneCallClient != null) {
-                log.info("[${channelName}] received end call")
-                redisClient.unsubscribe(channelName)
-                phoneCallClient.stop()
-                phoneCallClient = null
-                currentSessionId = null
-                redisCallRequestSubscribe(httpClient.username)
+                config.currentCallUsername = phoneCallResponse.sourceUsername
+                config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
+                config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
+                config.phoneCallClient.start()
+                userListListener.interrupt()
+                new CallWindow(config).create(frame)
             }
         }
     }
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
         log.info("[${response.sessionId}] subscribing with start call callback")
-        redisClient.unsubscribe(username)
-        redisClient.subscribeChannel(response.sessionId.toString()) { String channelName,
-                                                                      String messageString ->
+        config.redisClient.unsubscribe(config.username)
+        config.redisClient.subscribeChannel(response.sessionId.toString()) { String channelName,
+                                                                             String messageString ->
             Message message = Message.parseJSON(messageString)
-            if (message.sender == username) {
+            if (message.sender == config.username) {
                 return
             }
-            if (message.action == ACCEPT_CALL && phoneCallClient == null) {
+            if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
-                phoneCallClient = new PhoneCallClient(serverAddress, response.forwarderPort)
-                phoneCallClient.start()
-            } else if (message.action == END_CALL && phoneCallClient != null) {
+                config.phoneCallClient = new PhoneCallClient(config.serverAddress, response.forwarderPort)
+                config.phoneCallClient.start()
+                userListListener.interrupt()
+                new CallWindow(config).create(frame)
+            } else if (message.action == END_CALL && config.phoneCallClient != null) {
                 log.info("[${channelName}] received end call: " + message.content)
-                redisClient.unsubscribe(channelName)
-                phoneCallClient.stop()
-                phoneCallClient = null
-                currentSessionId = null
-                redisCallRequestSubscribe(httpClient.username)
+                config.redisClient.unsubscribe(channelName)
+                config.phoneCallClient.stop()
+                config.phoneCallClient = null
+                config.currentSessionId = null
+                redisCallRequestSubscribe(config.httpClient.username)
             }
         }
     }
 
-    void create(JFrame frame) {
-
-        // Cleaning frame
-        frame.getContentPane().removeAll()
-        frame.repaint()
-        frame.setSize(420, 350)
-        frame.setResizable(false)
-
-        // Main panel
-        JPanel mainPanel = new JPanel()
-        mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
-
-        // Username
-        JPanel usernamePanel = new JPanel()
-        usernamePanel.setPreferredSize(new Dimension(400, 20))
-        JLabel yourUsernameLabel = new JLabel("Logged in as: [" + username +"]")
-        usernamePanel.add(yourUsernameLabel)
-
-        // Search
-        JPanel searchPanel = new JPanel()
-
-        searchPanel.setLayout(new GridLayout(2, 1))
-
-        JLabel searchLabel = new JLabel("Select or search user to make a call: ")
-        JTextField searchField = new JTextField(16)
-
-        searchPanel.add(searchLabel)
-        searchPanel.add(searchField)
-
-        // Contacts
-        JPanel contactsPanel = new JPanel()
-
-        DefaultTableModel model = new DefaultTableModel()
-        model.addColumn("Usernames")
-        JTable contactsTable = new JTable(model)
-        TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(model)
-        contactsTable.setRowSorter(sorter)
-
-        JScrollPane scrollPane = new JScrollPane(contactsTable)
-        scrollPane.setPreferredSize(new Dimension(350, 150))
-        contactsPanel.add(scrollPane)
-
-        // Controls
-        JPanel controlsPanel = new JPanel()
-        controlsPanel.setPreferredSize(new Dimension(200, 50))
-        controlsPanel.setLayout(new GridLayout(1, 2))
-
-        JButton connectButton = new JButton("Connect")
-        connectButton.addActionListener(new ActionListener() {
+    private ActionListener createConnectButtonListener() {
+        return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked connect button")
 
                 // Get selected user
-                int column = 0
                 int row = contactsTable.getSelectedRow()
-                String[] usersToCall = [contactsTable.getModel().getValueAt(row, column).toString()]
+                if (row < 0 || row >= contactsTable.rowCount) {
+                    return
+                }
+                config.currentCallUsername = contactsTable.getModel().getValueAt(row, 0).toString()
                 // Try to connect
-//                PhoneCallResponse response = httpClient.startCall(usersToCall[0])
-//                currentSessionId = response.sessionId
-//                redisStartCallSubscribe(response)
-                new CallWindow(httpClient, redisClient, usersToCall).create(frame)
+                PhoneCallResponse response = config.httpClient.startCall(config.currentCallUsername)
+                config.currentSessionId = response.sessionId
+                redisStartCallSubscribe(response)
             }
-        })
+        }
+    }
 
-        JButton logOutButton = new JButton("Log Out")
-        logOutButton.addActionListener(new ActionListener() {
+    private ActionListener createLogOutButtonListener() {
+        return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked disconnect button")
-                String[] configs = ['0.0.0.0','8080']
-                new LoggedOutWindow(configs).create(frame)
-
+                new LoggedOutWindow(config).create(frame)
             }
-        })
-        controlsPanel.add(connectButton)
-        controlsPanel.add(logOutButton)
+        }
+    }
 
-        // Listeners
+    private void createUserListListenerThread() {
         userListListener = new Thread({
             while (!Thread.currentThread().isInterrupted()) {
-                Set<String> userList = this.httpClient.getUserList()
+                Set<String> userList = config.httpClient.getUserList()
                 model.setRowCount(0)
                 for (String user in userList) {
                     model.addRow(user)
@@ -195,8 +127,10 @@ class LoggedInWindow extends Window {
             }
         })
         userListListener.start()
+    }
 
-        searchField.getDocument().addDocumentListener(new DocumentListener() {
+    private DocumentListener createSearchFieldListener(JPanel mainPanel) {
+        return new DocumentListener() {
             void changedUpdate(DocumentEvent e) {
                 filter()
             }
@@ -227,17 +161,83 @@ class LoggedInWindow extends Window {
                 }
                 return result.toString()
             }
-        })
+        }
+    }
 
-        // Adding components to main panel
-        mainPanel.add(usernamePanel, BorderLayout.CENTER)
-        mainPanel.add(searchPanel, BorderLayout.CENTER)
-        mainPanel.add(contactsPanel, BorderLayout.CENTER)
-        mainPanel.add(controlsPanel, BorderLayout.CENTER)
+    private JPanel createUsernamePanel() {
+        JLabel yourUsernameLabel = new JLabel("You are logged in as: " + config.username)
+        Font usernameFont = yourUsernameLabel.getFont()
+        yourUsernameLabel.setFont(new Font(usernameFont.getName(), usernameFont.getStyle(), 20))
 
-        // Adding main panel to the frame.
-        frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
-        frame.setVisible(true)
+        JPanel usernamePanel = new JPanel()
+        usernamePanel.setPreferredSize(new Dimension(400, 40))
+        usernamePanel.add(yourUsernameLabel)
+        return usernamePanel
+    }
+
+    private JPanel createSearchPanel() {
+        JLabel searchLabel = new JLabel("Select or search user to make a call: ")
+        searchField = new JTextField(16)
+
+        JPanel searchPanel = new JPanel()
+        searchPanel.setLayout(new GridLayout(2, 1))
+        searchPanel.add(searchLabel)
+        searchPanel.add(searchField)
+        return searchPanel
+    }
+
+    private JPanel createContactsPanel() {
+        model = new DefaultTableModel()
+        model.addColumn("Usernames")
+        contactsTable = new JTable(model)
+        sorter = new TableRowSorter<TableModel>(model)
+        contactsTable.setRowSorter(sorter)
+
+        JScrollPane scrollPane = new JScrollPane(contactsTable)
+        scrollPane.setPreferredSize(new Dimension(350, 150))
+
+        JPanel contactsPanel = new JPanel()
+        contactsPanel.add(scrollPane)
+        return contactsPanel
+    }
+
+    private JPanel createControlsPanel() {
+        JButton connectButton = new JButton("Connect")
+        connectButton.addActionListener(createConnectButtonListener())
+
+        JButton logOutButton = new JButton("Log Out")
+        logOutButton.addActionListener(createLogOutButtonListener())
+
+        JPanel controlsPanel = new JPanel()
+        controlsPanel.setPreferredSize(new Dimension(200, 50))
+        controlsPanel.setLayout(new GridLayout(1, 2))
+        controlsPanel.add(connectButton)
+        controlsPanel.add(logOutButton)
+        return controlsPanel
+    }
+
+    void create(JFrame frame) {
+        super.create(frame)
+        SwingUtilities.invokeLater {
+            frame.getContentPane().removeAll()
+            frame.repaint()
+            frame.setSize(420, 350)
+            frame.setResizable(false)
+
+            JPanel mainPanel = new JPanel()
+            mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
+            mainPanel.add(createUsernamePanel(), BorderLayout.CENTER)
+            mainPanel.add(createSearchPanel(), BorderLayout.CENTER)
+            mainPanel.add(createContactsPanel(), BorderLayout.CENTER)
+            mainPanel.add(createControlsPanel(), BorderLayout.CENTER)
+
+            // Additional listeners
+            searchField.getDocument().addDocumentListener(createSearchFieldListener(mainPanel))
+            createUserListListenerThread()
+
+            frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
+            frame.setVisible(true)
+        }
     }
 
 }

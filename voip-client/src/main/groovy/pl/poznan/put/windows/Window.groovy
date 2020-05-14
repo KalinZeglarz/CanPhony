@@ -1,9 +1,21 @@
 package pl.poznan.put.windows
 
-import javax.swing.JFrame
+import pl.poznan.put.structures.ClientConfig
+
+import javax.swing.*
 
 abstract class Window {
 
-    abstract void create(JFrame frame)
+    protected ClientConfig config
+    protected JFrame frame = null
+
+    Window(ClientConfig config) {
+        this.config = config
+    }
+
+
+    void create(JFrame frame) {
+        this.frame = frame
+    }
 
 }

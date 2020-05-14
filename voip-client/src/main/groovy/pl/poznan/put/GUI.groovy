@@ -1,19 +1,17 @@
 package pl.poznan.put
 
-
 import groovy.util.logging.Slf4j
-import org.json.JSONObject
-import pl.poznan.put.windows.LoggedOutWindow
 import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
+import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.windows.LoggedOutWindow
 
 import javax.swing.*
-import javax.swing.plaf.FontUIResource
-import java.awt.Toolkit
+import java.awt.*
 
 @Slf4j
-class GUI extends JFrame   {
+class GUI extends JFrame {
 
-    GUI(){
+    GUI() {
         super("CanPhony")
     }
 
@@ -21,26 +19,12 @@ class GUI extends JFrame   {
         new LoggedOutWindow(readServerAddress()).create(this)
     }
 
-    static String[] readServerAddress() {
+    static ClientConfig readServerAddress() {
         File configFile = new File('clientConfig.json')
         if (!configFile.exists()) {
-            String [] blank = ['','']
-            return blank
+            return new ClientConfig()
         }
-        JSONObject configJson = new JSONObject(configFile.getText())
-        String[] configs = [configJson.getString('serverAddress'), configJson.getString('serverPort')]
-        System.out.println(configs)
-        return configs
-    }
-
-    static void setUIFont (FontUIResource f){
-        Enumeration keys = UIManager.getDefaults().keys()
-        while (keys.hasMoreElements()) {
-            Object key = keys.nextElement()
-            Object value = UIManager.get (key)
-            if (value instanceof FontUIResource)
-                UIManager.put (key, f)
-        }
+        return ClientConfig.parseJSON(configFile.getText())
     }
 
     static void main(String[] args) throws InterruptedException {
@@ -48,9 +32,8 @@ class GUI extends JFrame   {
         SwingUtilities.invokeLater {
             try {
                 UIManager.setLookAndFeel(SubstanceNightShadeLookAndFeel.class.getCanonicalName())
-                //setUIFont (new FontUIResource("Helvetica", Font.BOLD,12))
             } catch (Exception ignored) {
-                log.error("Substance Graphite failed to initialize")
+                log.error("Substance failed to initialize")
                 System.exit(1)
             }
             GUI gui = new GUI()

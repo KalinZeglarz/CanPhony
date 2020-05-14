@@ -12,4 +12,5 @@ class LoginRequest extends ApiRequest implements JSONable {
                 .put('username', username)
                 .put('password', password)
     }
+
 }

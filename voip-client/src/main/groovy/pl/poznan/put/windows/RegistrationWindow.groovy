@@ -2,6 +2,8 @@ package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
+import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.windows.Window
 
 import javax.swing.*
 import java.awt.*
@@ -9,96 +11,33 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 
 @Slf4j
-class RegistrationWindow extends Window implements SaveServerAddress {
+class RegistrationWindow extends Window implements SaveClientConfig {
 
-    private VoipHttpClient httpClient
-    private String serverAddress = ''
-    private String serverPort = ''
+    JTextField serverAddressField
+    JTextField serverPortField
+    JTextField usernameField
+    JPasswordField passwordField
+    JPasswordField passConfirmField
 
-    RegistrationWindow(String[] configs) {
-        this.serverAddress = configs[0]
-        this.serverPort = configs[1]
+    RegistrationWindow(ClientConfig config) {
+        super(config)
     }
 
-
-    void create(JFrame frame) {
-        // Cleaning frame
-        frame.getContentPane().removeAll()
-        frame.repaint()
-        frame.setSize(420, 220)
-        frame.setResizable(false)
-
-        // Main panel
-        JPanel mainPanel = new JPanel()
-        mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
-
-        // Server
-        JPanel serverPanel = new JPanel()
-
-        JLabel serverAddressLabel = new JLabel("           Server:")
-        serverAddressLabel.setHorizontalAlignment(SwingConstants.RIGHT)
-        JTextField serverAddressField = new JTextField(8)
-        serverAddressField.setText(serverAddress)
-        serverAddressLabel.setLabelFor(serverAddressField)
-
-        JLabel serverPortLabel = new JLabel("      Port:")
-        serverPortLabel.setHorizontalAlignment(SwingConstants.RIGHT)
-        JTextField serverPortField = new JTextField(4)
-        serverPortField.setText(serverPort)
-        serverPortLabel.setLabelFor(serverPortField)
-
-        serverPanel.add(serverAddressLabel)
-        serverPanel.add(serverAddressField)
-        serverPanel.add(serverPortLabel)
-        serverPanel.add(serverPortField)
-
-        // Username
-        JPanel usernamePanel = new JPanel()
-
-        JLabel usernameLabel = new JLabel("     Username:")
-        JTextField usernameField = new JTextField(18)
-
-        usernamePanel.add(usernameLabel)
-        usernamePanel.add(usernameField)
-
-        // Password
-        JPanel passwordPanel = new JPanel()
-
-        JLabel passwordLabel = new JLabel("      Password:")
-        JPasswordField passwordField = new JPasswordField(18)
-
-        passwordPanel.add(passwordLabel)
-        passwordPanel.add(passwordField)
-
-        // Password confirm
-        JPanel passConfirmPanel = new JPanel()
-
-        JLabel passConfirmLabel = new JLabel("Re-password:")
-        JPasswordField passConfirmField = new JPasswordField(18)
-        passConfirmLabel.setLabelFor(passwordField)
-
-        passConfirmPanel.add(passConfirmLabel)
-        passConfirmPanel.add(passConfirmField)
-
-        // Controls
-        JPanel controlsPanel = new JPanel()
-        controlsPanel.setLayout(new GridLayout(1,2))
-
-        JButton backButton = new JButton("Back")
-        backButton.addActionListener(new ActionListener() {
+    private ActionListener createBackButtonListener() {
+        return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked back button')
-                String[] configs = [serverAddressField.getText(), serverPortField.getText()]
-                serverAddress = saveServerAddress(configs)[0]
-                serverPort = saveServerAddress(configs)[1]
-                saveServerAddress(configs)
-                new LoggedOutWindow(configs).create(frame)
+                config.serverAddress = serverAddressField.getText()
+                config.serverPort = serverPortField.getText()
+                writeConfigToFile(config)
+                new LoggedOutWindow(config).create(frame)
             }
-        })
+        }
+    }
 
-        JButton registerButton = new JButton("Register")
-        registerButton.addActionListener(new ActionListener() {
+    private ActionListener createRegisterButtonListener() {
+        new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked register button')
@@ -110,36 +49,111 @@ class RegistrationWindow extends Window implements SaveServerAddress {
                     return
                 }
                 try {
-                    httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
+                    config.httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
                 } catch (ConnectException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
                 }
-                boolean registered = httpClient.register(username, password)
+                boolean registered = config.httpClient.register(username, password)
                 if (registered) {
                     JOptionPane.showMessageDialog(frame, "Account created successfully.")
-                    String[] configs = [serverAddressField.getText(), serverPortField.getText()]
-                    saveServerAddress(configs)
-                    new LoggedOutWindow(configs).create(frame)
+                    config.serverAddress = serverAddressField.getText()
+                    config.serverPort = serverPortField.getText()
+                    writeConfigToFile(config)
+                    new LoggedOutWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, "Incorrect login or password.")
                 }
             }
-        })
+        }
+    }
 
+    private JPanel createServerPanel() {
+        JLabel serverAddressLabel = new JLabel("           Server:")
+        serverAddressLabel.setHorizontalAlignment(SwingConstants.RIGHT)
+        serverAddressField = new JTextField(8)
+        serverAddressField.setText(config.serverAddress)
+        serverAddressLabel.setLabelFor(serverAddressField)
+
+        JLabel serverPortLabel = new JLabel("      Port:")
+        serverPortLabel.setHorizontalAlignment(SwingConstants.RIGHT)
+        serverPortField = new JTextField(4)
+        serverPortField.setText(config.serverPort)
+        serverPortLabel.setLabelFor(serverPortField)
+
+        JPanel serverPanel = new JPanel()
+        serverPanel.add(serverAddressLabel)
+        serverPanel.add(serverAddressField)
+        serverPanel.add(serverPortLabel)
+        serverPanel.add(serverPortField)
+
+        return serverPanel
+    }
+
+    private JPanel createUsernamePanel() {
+        JLabel usernameLabel = new JLabel("     Username:")
+        usernameField = new JTextField(18)
+
+        JPanel usernamePanel = new JPanel()
+        usernamePanel.add(usernameLabel)
+        usernamePanel.add(usernameField)
+        return usernamePanel
+    }
+
+    private JPanel createPasswordPanel() {
+        JLabel passwordLabel = new JLabel("      Password:")
+        passwordField = new JPasswordField(18)
+
+        JPanel passwordPanel = new JPanel()
+        passwordPanel.add(passwordLabel)
+        passwordPanel.add(passwordField)
+        return passwordPanel
+    }
+
+    private JPanel createPasswordConfirmPanel() {
+        JLabel passConfirmLabel = new JLabel("Re-password:")
+        passConfirmField = new JPasswordField(18)
+        passConfirmLabel.setLabelFor(passwordField)
+
+        JPanel passConfirmPanel = new JPanel()
+        passConfirmPanel.add(passConfirmLabel)
+        passConfirmPanel.add(passConfirmField)
+        return passConfirmPanel
+    }
+
+    private JPanel createControlsPanel() {
+        JButton backButton = new JButton("Back")
+        backButton.addActionListener(createBackButtonListener())
+
+        JButton registerButton = new JButton("Register")
+        registerButton.addActionListener(createRegisterButtonListener())
+
+        JPanel controlsPanel = new JPanel()
+        controlsPanel.setLayout(new GridLayout(1, 2))
         controlsPanel.add(backButton)
         controlsPanel.add(registerButton)
+        return controlsPanel
+    }
 
-        // Adding components to main panel
-        mainPanel.add(serverPanel)
-        mainPanel.add(usernamePanel)
-        mainPanel.add(passwordPanel)
-        mainPanel.add(passConfirmPanel)
-        mainPanel.add(controlsPanel)
+    void create(JFrame frame) {
+        super.create(frame)
+        SwingUtilities.invokeLater {
+            frame.getContentPane().removeAll()
+            frame.repaint()
+            frame.setSize(420, 220)
+            frame.setResizable(false)
 
-        // Adding main panel to the frame
-        frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
-        frame.setVisible(true)
+            JPanel mainPanel = new JPanel()
+            mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
+            mainPanel.add(createServerPanel())
+            mainPanel.add(createUsernamePanel())
+            mainPanel.add(createPasswordPanel())
+            mainPanel.add(createPasswordConfirmPanel())
+            mainPanel.add(createControlsPanel())
+
+            frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
+            frame.setVisible(true)
+        }
     }
 
 }

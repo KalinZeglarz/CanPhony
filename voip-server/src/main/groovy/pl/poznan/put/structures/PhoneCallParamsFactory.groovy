@@ -8,10 +8,10 @@ class PhoneCallParamsFactory {
 
     private PhoneCallParamsFactory() {}
 
-    static PhoneCallParams createPhoneCallParams(String clientAddress1, String clientAddress2) {
+    static PhoneCallParams createPhoneCallParams(PhoneCallRequest request) {
         PhoneCallParams result = new PhoneCallParams()
-        result.clientAddress1 = clientAddress1
-        result.clientAddress2 = clientAddress2
+        result.sourceUsername = request.sourceUsername
+        result.targetUsername = request.targetUsername
         result.sessionId = currentSessionId
 
         currentSessionId += 1

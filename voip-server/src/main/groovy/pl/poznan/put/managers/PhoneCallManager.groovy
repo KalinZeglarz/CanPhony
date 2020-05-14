@@ -21,13 +21,16 @@ class PhoneCallManager {
     private PhoneCallManager() {}
 
     static Tuple2<PhoneCallResponse, PhoneCallResponse> addPhoneCall(PhoneCallParams params) {
+        String sourceUserAddress = DatabaseManager.getUserAddress(params.sourceUsername)
+        String targetUserAddress = DatabaseManager.getUserAddress(params.targetUsername)
+
         final int forwarderPort1 = getForwarderPort()
         final int forwarderPort2 = getForwarderPort()
-        UdpAudioForwarder audioForwarder1 = new UdpAudioForwarder(streamerAddress: params.getClientAddress1(),
-                streamerPort: streamerPort, receiverAddress: params.getClientAddress2(), receiverPort: receiverPort,
+        UdpAudioForwarder audioForwarder1 = new UdpAudioForwarder(streamerAddress: sourceUserAddress,
+                streamerPort: streamerPort, receiverAddress: targetUserAddress, receiverPort: receiverPort,
                 forwarderPort: forwarderPort1, audioQuality: params.audioQuality, bufferSize: params.bufferSize)
-        UdpAudioForwarder audioForwarder2 = new UdpAudioForwarder(streamerAddress: params.getClientAddress2(),
-                streamerPort: streamerPort, receiverAddress: params.getClientAddress1(), receiverPort: receiverPort,
+        UdpAudioForwarder audioForwarder2 = new UdpAudioForwarder(streamerAddress: targetUserAddress,
+                streamerPort: streamerPort, receiverAddress: sourceUserAddress, receiverPort: receiverPort,
                 forwarderPort: forwarderPort2, audioQuality: params.audioQuality, bufferSize: params.bufferSize)
         phoneCallForwarders.put(params.sessionId, new Tuple2(audioForwarder1, audioForwarder2))
 
@@ -44,8 +47,10 @@ class PhoneCallManager {
         }
         audioForwarder1.start()
         audioForwarder2.start()
-        final PhoneCallResponse response1 = new PhoneCallResponse(sessionId: params.sessionId, forwarderPort: forwarderPort1)
-        final PhoneCallResponse response2 = new PhoneCallResponse(sessionId: params.sessionId, forwarderPort: forwarderPort2)
+        final PhoneCallResponse response1 = new PhoneCallResponse(sourceUsername: params.sourceUsername,
+                targetUsername: params.targetUsername, sessionId: params.sessionId, forwarderPort: forwarderPort1)
+        final PhoneCallResponse response2 = new PhoneCallResponse(sourceUsername: params.sourceUsername,
+                targetUsername: params.targetUsername, sessionId: params.sessionId, forwarderPort: forwarderPort2)
         return new Tuple2<>(response1, response2)
     }
 

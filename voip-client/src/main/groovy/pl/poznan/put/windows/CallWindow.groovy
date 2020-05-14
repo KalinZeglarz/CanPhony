@@ -1,133 +1,88 @@
 package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
-import pl.poznan.put.PhoneCallClient
-import pl.poznan.put.VoipHttpClient
-import pl.poznan.put.structures.PhoneCallResponse
+import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.subpub.Message
 import pl.poznan.put.subpub.MessageFactory
-import pl.poznan.put.subpub.RedisClient
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
-import javax.swing.table.DefaultTableModel
-import javax.swing.table.TableModel
-import javax.swing.table.TableRowSorter
 import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.util.concurrent.TimeUnit
 
-import static pl.poznan.put.subpub.MessageAction.*
+import static pl.poznan.put.subpub.MessageAction.END_CALL
 
 @Slf4j
 class CallWindow extends Window {
 
-    final String username
-    final String serverAddress
-    final VoipHttpClient httpClient
-    final RedisClient redisClient
-    PhoneCallClient phoneCallClient = null
-    Integer currentSessionId = null
-    String[] usersToCall
-    Thread timer
+    Thread timerThread
 
-    CallWindow(VoipHttpClient httpClient, RedisClient redisClient, String[] usersToCall) {
-        this.httpClient = httpClient
-        this.redisClient = redisClient
-        username = httpClient.username
-        serverAddress = httpClient.serverAddress.split(':')[0]
-        redisCallRequestSubscribe(httpClient.username)
-        this.usersToCall = usersToCall
-    }
+    JLabel timerLabel
 
-    private void redisCallRequestSubscribe(String username) {
-        log.info("[${username}] subscribing with call request callback")
-        redisClient.subscribeChannel(username) { String channelName, String messageString ->
-            Message message = Message.parseJSON(messageString)
-            if (message.sender == username) {
-                return
-            }
-            if (message.action == CALL_REQUEST && phoneCallClient == null) {
-                log.info("[${channelName}] received call request: " + message.content)
-                redisClient.unsubscribe(username)
-                PhoneCallResponse phoneCallResponse = PhoneCallResponse.parseJSON(message.content)
-                currentSessionId = phoneCallResponse.sessionId
-
-                redisEndCallSubscribe(currentSessionId)
-                redisClient.publishMessage(currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
-                phoneCallClient = new PhoneCallClient(serverAddress, phoneCallResponse.forwarderPort)
-                phoneCallClient.start()
-            }
-        }
+    CallWindow(ClientConfig config) {
+        super(config)
+        redisEndCallSubscribe(config.currentSessionId)
     }
 
     private void redisEndCallSubscribe(int sessionId) {
         log.info("[${sessionId}] subscribing with end call callback")
-        redisClient.subscribeChannel(sessionId.toString()) { String channelName, String messageString ->
+        config.redisClient.subscribeChannel(sessionId.toString()) { String channelName, String messageString ->
             Message message = Message.parseJSON(messageString)
-            if (message.sender == username) {
-                return
-            }
-            if (message.action == END_CALL && phoneCallClient != null) {
+            if (message.action == END_CALL && config.phoneCallClient != null) {
                 log.info("[${channelName}] received end call")
-                redisClient.unsubscribe(channelName)
-                phoneCallClient.stop()
-                phoneCallClient = null
-                currentSessionId = null
-                redisCallRequestSubscribe(httpClient.username)
+                config.redisClient.unsubscribe(channelName)
+                config.phoneCallClient.stop()
+                config.phoneCallClient = null
+                config.currentSessionId = null
+                new LoggedInWindow(config).create(frame)
             }
         }
     }
 
-    void create(JFrame frame) {
+    private JPanel createUsernamePanel() {
+        JLabel callUsernameLabel = new JLabel("Call with:  " + config.currentCallUsername)
+        Font usernameFont = callUsernameLabel.getFont()
+        callUsernameLabel.setFont(new Font(usernameFont.getName(), usernameFont.getStyle(), 40))
 
-        // Cleaning frame
-        frame.getContentPane().removeAll()
-        frame.repaint()
-        frame.setSize(420, 350)
-        frame.setResizable(false)
-
-        // Main panel
-        JPanel mainPanel = new JPanel()
-        mainPanel.setLayout(new GridLayout(3,1))
-
-        // Username
         JPanel usernamePanel = new JPanel()
         usernamePanel.setPreferredSize(new Dimension(400, 20))
-        JLabel yourUsernameLabel = new JLabel("Call with:  " + usersToCall)
-        usernamePanel.add(yourUsernameLabel)
+        usernamePanel.add(callUsernameLabel)
+        return usernamePanel
+    }
 
-        // Controls
-        JPanel controlsPanel = new JPanel()
-        controlsPanel.setPreferredSize(new Dimension(200, 50))
-        controlsPanel.setLayout(new GridLayout(1, 2))
-
-
+    private JPanel createControlsPanel() {
         JButton endCallButton = new JButton("End Call")
         endCallButton.addActionListener(new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info("clicked endcall button")
-                new LoggedInWindow(httpClient, redisClient).create(frame)
+                log.info("clicked end call button")
+                config.redisClient.publishMessage(config.currentSessionId,
+                        MessageFactory.createMessage(END_CALL, config.username))
+                new LoggedInWindow(config).create(frame)
             }
         })
+
+        JPanel controlsPanel = new JPanel()
+        controlsPanel.setPreferredSize(new Dimension(200, 70))
+        controlsPanel.setLayout(new GridLayout(1, 2))
         controlsPanel.add(endCallButton)
+        return controlsPanel
+    }
 
-        //Timer
+    private JPanel createTimerPanel() {
+        timerLabel = new JLabel()
+        Font timerFont = timerLabel.getFont()
+        timerLabel.setFont(new Font(timerFont.getName(), timerFont.getStyle(), 50))
+
         JPanel timerPanel = new JPanel()
-        JLabel timerLabel = new JLabel()
         timerPanel.add(timerLabel)
+        return timerPanel
+    }
 
-        // Adding components to main panel
-        mainPanel.add(usernamePanel, BorderLayout.CENTER)
-        mainPanel.add(timerPanel, BorderLayout.CENTER)
-        mainPanel.add(controlsPanel, BorderLayout.CENTER)
-
-        // Timer thread
-        timer = new Thread({
+    private void createTimerThread(JPanel mainPanel) {
+        timerThread = new Thread({
             int hours = 0
             int minutes = 0
             int seconds = 0
@@ -135,29 +90,26 @@ class CallWindow extends Window {
             while (!Thread.currentThread().isInterrupted()) {
                 String timeToShow = ''
                 seconds++
-                if(seconds==60){
+                if (seconds == 60) {
                     seconds = 0
                     minutes++
                 }
-                if(minutes==60){
+                if (minutes == 60) {
                     minutes = 0
                     hours++
                 }
 
-                if(hours<10){
+                if (hours < 10) {
                     timeToShow += '0' + hours + ':'
-                }
-                else timeToShow += hours + ':'
+                } else timeToShow += hours + ':'
 
-                if(minutes<10){
+                if (minutes < 10) {
                     timeToShow += '0' + minutes + ':'
-                }
-                else timeToShow += minutes + ':'
+                } else timeToShow += minutes + ':'
 
-                if(seconds<10){
+                if (seconds < 10) {
                     timeToShow += '0' + seconds
-                }
-                else timeToShow += seconds
+                } else timeToShow += seconds
                 timerLabel.setText(timeToShow)
                 SwingUtilities.invokeLater {
                     mainPanel.updateUI()
@@ -165,11 +117,29 @@ class CallWindow extends Window {
                 TimeUnit.SECONDS.sleep(1)
             }
         })
-        timer.start()
+        timerThread.start()
+    }
 
-        // Adding main panel to the frame.
-        frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
-        frame.setVisible(true)
+    void create(JFrame frame) {
+        super.create(frame)
+        SwingUtilities.invokeLater {
+            frame.getContentPane().removeAll()
+            frame.repaint()
+            frame.setSize(420, 350)
+            frame.setResizable(false)
+
+            JPanel mainPanel = new JPanel()
+            mainPanel.setLayout(new GridLayout(3, 1))
+            mainPanel.add(createUsernamePanel(), BorderLayout.CENTER)
+            mainPanel.add(createTimerPanel(), BorderLayout.CENTER)
+            mainPanel.add(createControlsPanel(), BorderLayout.CENTER)
+
+            createTimerThread(mainPanel)
+
+            // Adding main panel to the frame.
+            frame.getContentPane().add(BorderLayout.CENTER, mainPanel)
+            frame.setVisible(true)
+        }
     }
 
 }

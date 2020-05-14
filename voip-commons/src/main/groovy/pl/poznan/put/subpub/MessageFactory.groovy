@@ -1,6 +1,5 @@
 package pl.poznan.put.subpub
 
-import org.json.JSONObject
 import pl.poznan.put.structures.JSONable
 
 import java.time.LocalDateTime

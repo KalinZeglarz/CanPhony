@@ -8,6 +8,7 @@ import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
 
 import javax.swing.*
 import javax.swing.plaf.FontUIResource
+import java.awt.Toolkit
 
 @Slf4j
 class GUI extends JFrame   {
@@ -53,6 +54,7 @@ class GUI extends JFrame   {
                 System.exit(1)
             }
             GUI gui = new GUI()
+            gui.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource('/gui/icon.png')))
             gui.setSize(320, 200)
             gui.setLocationRelativeTo()
             log.info("starting gui client")

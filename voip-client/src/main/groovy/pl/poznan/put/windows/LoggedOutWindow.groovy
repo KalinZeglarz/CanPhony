@@ -28,6 +28,7 @@ class LoggedOutWindow extends Window implements SaveServerAddress {
         frame.getContentPane().removeAll()
         frame.repaint()
         frame.setSize(420, 180)
+        frame.setResizable(false)
 
         // Main panel
         JPanel mainPanel = new JPanel()

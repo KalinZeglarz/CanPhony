@@ -111,6 +111,7 @@ class LoggedInWindow extends Window {
         frame.getContentPane().removeAll()
         frame.repaint()
         frame.setSize(420, 350)
+        frame.setResizable(false)
 
         // Main panel
         JPanel mainPanel = new JPanel()

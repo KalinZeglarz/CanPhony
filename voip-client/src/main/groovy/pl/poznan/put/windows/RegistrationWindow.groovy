@@ -26,6 +26,7 @@ class RegistrationWindow extends Window implements SaveServerAddress {
         frame.getContentPane().removeAll()
         frame.repaint()
         frame.setSize(420, 220)
+        frame.setResizable(false)
 
         // Main panel
         JPanel mainPanel = new JPanel()

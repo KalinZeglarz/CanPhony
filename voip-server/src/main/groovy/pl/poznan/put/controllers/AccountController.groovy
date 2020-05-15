@@ -18,15 +18,21 @@ class AccountController {
 
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
-    ResponseEntity<ApiResponse> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
-        if (!DatabaseManager.checkAccount(loginRequest)) {
-            ApiResponse response = new MessageResponse(message: "incorrect username or password")
+    ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        AccountStatus accountStatus = DatabaseManager.checkAccount(loginRequest)
+        if (accountStatus != AccountStatus.SUCCESS) {
+            LoginResponse response = null
+            if (accountStatus == AccountStatus.NOT_EXISTS) {
+                response = new LoginResponse(message: "Wrong username.")
+            } else if (accountStatus == AccountStatus.INCORRECT_PASSWORD) {
+                response = new LoginResponse(message: "Wrong password.")
+            }
             return new ResponseEntity(response, HttpStatus.CONFLICT)
         }
 
         DatabaseManager.updateUserAddress(loginRequest.username, request.remoteAddr)
 
-        ApiResponse response = new LoginResponse(subPubHost: SubPubManager.getRedisHost(),
+        LoginResponse response = new LoginResponse(subPubHost: SubPubManager.getRedisHost(),
                 subPubPort: GlobalConstants.REDIS_PORT)
         return new ResponseEntity(response, HttpStatus.CREATED)
     }
@@ -35,16 +41,12 @@ class AccountController {
     @ResponseBody
     ResponseEntity<ApiResponse> register(@RequestBody LoginRequest loginRequest) {
         log.info('received register request: ' + loginRequest.toJSON().toString())
-        if (DatabaseManager.accountExists(loginRequest.username)) {
-            MessageResponse response = new MessageResponse(message: "username already in use")
-            return new ResponseEntity(response, HttpStatus.CONFLICT)
-        }
         boolean created = DatabaseManager.createAccount(loginRequest)
         log.info('user created: ' + created)
         if (created) {
             return new ResponseEntity(new MessageResponse(message: "user created"), HttpStatus.CREATED)
         } else {
-            return new ResponseEntity(new MessageResponse(message: "server error"), HttpStatus.INTERNAL_SERVER_ERROR)
+            return new ResponseEntity(new MessageResponse(message: "username already in use"), HttpStatus.CONFLICT)
         }
     }
 
@@ -54,6 +56,14 @@ class AccountController {
         log.info('received user list request')
         Set<String> userList = DatabaseManager.getUserList()
         return new ResponseEntity(new UserListResponse(userList: userList), HttpStatus.OK)
+    }
+
+    @GetMapping(value = "/password-policy", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    ResponseEntity<PasswordPolicy> passwordPolicy() {
+        log.info('received user list request')
+        PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
+        return new ResponseEntity(policy.toJSON().toString(), HttpStatus.OK)
     }
 
 }

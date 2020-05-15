@@ -50,7 +50,11 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     return
                 }
                 LoginResponse loginResponse = config.httpClient.login(username, password)
-                if (loginResponse != null) {
+                if (loginResponse == null) {
+                    JOptionPane.showMessageDialog(frame, "Something went wrong.")
+                    return
+                }
+                if (loginResponse.message.isEmpty()) {
                     config.serverAddress = serverAddressField.getText()
                     config.serverPort = serverPortField.getText()
                     config.username = usernameField.getText()
@@ -60,7 +64,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     config.redisClient = new RedisClient(loginResponse.subPubHost)
                     new LoggedInWindow(config).create(frame)
                 } else {
-                    JOptionPane.showMessageDialog(frame, "Incorrect login or password.")
+                    JOptionPane.showMessageDialog(frame, loginResponse.message)
                 }
             }
         }

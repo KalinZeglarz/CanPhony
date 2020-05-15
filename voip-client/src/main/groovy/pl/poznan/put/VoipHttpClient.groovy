@@ -25,14 +25,17 @@ class VoipHttpClient {
 
     private boolean checkConnection() {
         log.info("checking connection")
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://${serverAddress}/"))
+        HttpRequest request = buildGetRequest("/")
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        return response.statusCode() == 200
+    }
+
+    private HttpRequest buildGetRequest(String endpoint) {
+        return HttpRequest.newBuilder()
+                .uri(new URI("http://${serverAddress}${endpoint}"))
                 .setHeader("User-Agent", "Java 11 HttpClient")
                 .GET()
                 .build()
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        return response.statusCode() == 200
     }
 
     PhoneCallResponse startCall(String targetUsername) {
@@ -50,12 +53,7 @@ class VoipHttpClient {
 
     Set<String> getUserList() {
         log.info("getting user list")
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://${serverAddress}/account/user-list"))
-                .setHeader("User-Agent", "Java 11 HttpClient")
-                .GET()
-                .build()
-
+        HttpRequest request = buildGetRequest("/account/user-list")
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
         log.info("received: " + response.body())
@@ -73,10 +71,6 @@ class VoipHttpClient {
                 .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
                 .build()
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-
-        if (response.statusCode() != 201) {
-            return null
-        }
         return response
     }
 
@@ -92,10 +86,16 @@ class VoipHttpClient {
     boolean register(String username, String password) {
         log.info('registering account')
         HttpResponse<String> response = accountPost(username, password, "register")
-        if (response == null) {
-            return false
-        }
-        return true
+        return response.statusCode() == 201
+    }
+
+    PasswordPolicy getPasswordPolicy() {
+        log.info("getting user list")
+        HttpRequest request = buildGetRequest("/account/password-policy")
+        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+
+        log.info("received: " + response.body())
+        return PasswordPolicy.parseJSON(response.body())
     }
 
 }

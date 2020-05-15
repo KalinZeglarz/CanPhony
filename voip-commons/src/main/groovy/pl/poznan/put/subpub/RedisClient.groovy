@@ -9,7 +9,7 @@ import redis.clients.jedis.exceptions.JedisConnectionException
 @Slf4j
 class RedisClient {
 
-    protected final redisHost
+    protected final String redisHost
     protected final Jedis publisher
     protected final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
     protected final Map<String, Thread> subscriberThreads = new HashMap<>()

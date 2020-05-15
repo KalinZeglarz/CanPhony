@@ -12,7 +12,7 @@ class AccountExample {
 
     @SuppressWarnings("DuplicatedCode")
     static void main(String[] args) {
-        VoipHttpClient voipHttpClient = new VoipHttpClient()
+        VoipHttpClient voipHttpClient = new VoipHttpClient('127.0.0.1', '8080')
         log.info("login success: " + voipHttpClient.login("test", "test"))
         log.info("login success: " + voipHttpClient.login("", "test"))
         log.info("login success: " + voipHttpClient.login("test", ""))

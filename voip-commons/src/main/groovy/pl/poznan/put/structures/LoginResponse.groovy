@@ -3,13 +3,15 @@ package pl.poznan.put.structures
 import org.json.JSONObject
 
 class LoginResponse extends ApiResponse {
-    String subPubHost
-    int subPubPort
+    String message = ""
+    String subPubHost = ""
+    int subPubPort = -1
 
     static LoginResponse parseJSON(final String text) {
         JSONObject parsedJson = new JSONObject(text)
+        String message = parsedJson.getString('message')
         String subPubHost = parsedJson.getString('subPubHost')
         int subPubPort = parsedJson.getInt('subPubPort')
-        return new LoginResponse(subPubHost: subPubHost, subPubPort: subPubPort)
+        return new LoginResponse(message: message, subPubHost: subPubHost, subPubPort: subPubPort)
     }
 }

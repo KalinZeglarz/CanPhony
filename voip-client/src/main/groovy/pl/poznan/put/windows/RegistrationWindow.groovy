@@ -3,6 +3,7 @@ package pl.poznan.put.windows
 import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -36,24 +37,46 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         }
     }
 
+    private static JPanel mapToPanel(Map<Object, Object> map) {
+        JPanel mapPanel = new JPanel()
+        mapPanel.setLayout(new GridLayout(0, 2))
+        for (Map.Entry<Object, Object> entry in map) {
+            mapPanel.add(new JLabel(entry.getKey().toString()))
+            mapPanel.add(new JLabel(' : ' + entry.getValue().toString()))
+        }
+        return mapPanel
+    }
+
     private ActionListener createRegisterButtonListener() {
         new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info('clicked register button')
-                String username = usernameField.getText()
-                String password = passwordField.getPassword()
-                String passwordConfirm = passConfirmField.getPassword()
-                if (password != passwordConfirm) {
-                    JOptionPane.showMessageDialog(frame, "Passwords does not match.")
-                    return
-                }
+
                 try {
                     config.httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
                 } catch (ConnectException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
                 }
+
+                String username = usernameField.getText()
+                String password = passwordField.getPassword()
+                String passwordConfirm = passConfirmField.getPassword()
+
+                if (password != passwordConfirm) {
+                    JOptionPane.showMessageDialog(frame, "Passwords does not match.")
+                    return
+                }
+
+                PasswordPolicy policy = config.httpClient.getPasswordPolicy()
+                if (!policy.validatePassword(password)) {
+                    String messageTitle = "Password does not match password policy"
+                    JOptionPane.showMessageDialog(frame, mapToPanel(policy.toPrettyMap()), messageTitle,
+                            JOptionPane.PLAIN_MESSAGE)
+                    return
+                }
+
                 boolean registered = config.httpClient.register(username, password)
                 if (registered) {
                     JOptionPane.showMessageDialog(frame, "Account created successfully.")
@@ -62,7 +85,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
                     writeConfigToFile(config)
                     new LoggedOutWindow(config).create(frame)
                 } else {
-                    JOptionPane.showMessageDialog(frame, "Incorrect login or password.")
+                    JOptionPane.showMessageDialog(frame, "Username already in use.",)
                 }
             }
         }
@@ -86,7 +109,6 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         serverPanel.add(serverAddressField)
         serverPanel.add(serverPortLabel)
         serverPanel.add(serverPortField)
-
         return serverPanel
     }
 

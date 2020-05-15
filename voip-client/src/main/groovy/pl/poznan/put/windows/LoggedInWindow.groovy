@@ -24,7 +24,7 @@ import static pl.poznan.put.subpub.MessageAction.*
 class LoggedInWindow extends Window {
 
     private static final int USER_LIST_REQUEST_PERIOD = 30000
-    private Thread userListListener
+    private Thread userListListenerThread
 
     JTextField searchField
     DefaultTableModel model
@@ -53,7 +53,7 @@ class LoggedInWindow extends Window {
                 config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
                 config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
                 config.phoneCallClient.start()
-                userListListener.interrupt()
+                userListListenerThread.interrupt()
                 new CallWindow(config).create(frame)
             }
         }
@@ -72,7 +72,7 @@ class LoggedInWindow extends Window {
                 log.info("[${channelName}] call request accepted")
                 config.phoneCallClient = new PhoneCallClient(config.serverAddress, response.forwarderPort)
                 config.phoneCallClient.start()
-                userListListener.interrupt()
+                userListListenerThread.interrupt()
                 new CallWindow(config).create(frame)
             } else if (message.action == END_CALL && config.phoneCallClient != null) {
                 log.info("[${channelName}] received end call: " + message.content)
@@ -109,14 +109,15 @@ class LoggedInWindow extends Window {
         return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info("clicked disconnect button")
+                log.info("clicked log out button")
+                userListListenerThread.interrupt()
                 new LoggedOutWindow(config).create(frame)
             }
         }
     }
 
     private void createUserListListenerThread() {
-        userListListener = new Thread({
+        userListListenerThread = new Thread({
             while (!Thread.currentThread().isInterrupted()) {
                 Set<String> userList = config.httpClient.getUserList()
                 model.setRowCount(0)
@@ -126,7 +127,7 @@ class LoggedInWindow extends Window {
                 sleep(USER_LIST_REQUEST_PERIOD)
             }
         })
-        userListListener.start()
+        userListListenerThread.start()
     }
 
     private DocumentListener createSearchFieldListener(JPanel mainPanel) {

@@ -76,7 +76,7 @@ class VoipHttpClient {
 
     LoginResponse login(String username, String password) {
         log.info("logging in")
-        HttpResponse<String> response = accountPost(username, password, "login")
+        HttpResponse<String> response = accountPost(username, password.digest("SHA-512"), "login")
         if (response == null) {
             return null
         }
@@ -85,7 +85,7 @@ class VoipHttpClient {
 
     boolean register(String username, String password) {
         log.info('registering account')
-        HttpResponse<String> response = accountPost(username, password, "register")
+        HttpResponse<String> response = accountPost(username, password.digest("SHA-512"), "register")
         return response.statusCode() == 201
     }
 

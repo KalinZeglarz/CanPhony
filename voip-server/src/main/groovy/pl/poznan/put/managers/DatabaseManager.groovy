@@ -46,9 +46,9 @@ class DatabaseManager {
         }
         PasswordPolicy defaultPasswordPolicy = new PasswordPolicy(
                 minPasswordLength: 4,
-                numberOfUppercaseCharacters: 1,
-                numberOfLowercaseCharacters: 1,
-                numberOfNumericCharacters: 1,
+                numberOfUppercaseCharacters: 0,
+                numberOfLowercaseCharacters: 0,
+                numberOfNumericCharacters: 0,
                 numberOfSpecialCharacters: 0,
                 specialCharacters: '!@#$%^&*_-'
         )

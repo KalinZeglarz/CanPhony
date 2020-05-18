@@ -28,4 +28,3 @@ target/
 *.iml
 canphony.db
 clientConfig.json
-sqlite-ddl.sql

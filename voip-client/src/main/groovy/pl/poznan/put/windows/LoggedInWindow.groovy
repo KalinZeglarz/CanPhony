@@ -191,6 +191,7 @@ class LoggedInWindow extends Window {
         model = new DefaultTableModel()
         model.addColumn("Usernames")
         contactsTable = new JTable(model)
+        contactsTable.setDefaultEditor(Object.class, null)
         sorter = new TableRowSorter<TableModel>(model)
         contactsTable.setRowSorter(sorter)
 

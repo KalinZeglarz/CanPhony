@@ -45,7 +45,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                 String password = passwordField.getPassword()
                 try {
                     config.httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
-                } catch (ConnectException ignored) {
+                } catch (ConnectException | IllegalArgumentException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
                 }

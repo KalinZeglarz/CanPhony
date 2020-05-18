@@ -55,7 +55,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
 
                 try {
                     config.httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())
-                } catch (ConnectException ignored) {
+                } catch (ConnectException | IllegalArgumentException ignored) {
                     JOptionPane.showMessageDialog(frame, "Could not connect to server.")
                     return
                 }

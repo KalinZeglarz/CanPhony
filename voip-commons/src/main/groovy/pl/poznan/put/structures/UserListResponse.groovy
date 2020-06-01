@@ -3,11 +3,11 @@ package pl.poznan.put.structures
 import org.json.JSONObject
 
 class UserListResponse extends ApiResponse {
-    Set<String> userList
+    Map<String, UserStatus> userList
 
     static UserListResponse parseJSON(final String text) {
         JSONObject parsedJson = new JSONObject(text)
-        Set<String> userList = parsedJson.get('userList') as Set<String>
+        Map<String, UserStatus> userList = parsedJson.get('userList') as Map<String, UserStatus>
         return new UserListResponse(userList: userList)
     }
 

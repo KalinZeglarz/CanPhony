@@ -7,16 +7,21 @@ import pl.poznan.put.windows.LoggedOutWindow
 
 import javax.swing.*
 import java.awt.*
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 
 @Slf4j
 class GUI extends JFrame {
+
+    ClientConfig config
 
     GUI() {
         super("CanPhony")
     }
 
     void start() {
-        new LoggedOutWindow(readServerAddress()).create(this)
+        config = readServerAddress()
+        new LoggedOutWindow(config).create(this)
     }
 
     static ClientConfig readServerAddress() {
@@ -41,6 +46,20 @@ class GUI extends JFrame {
             gui.setSize(320, 200)
             gui.setLocationRelativeTo()
             log.info("starting gui client")
+            gui.setDefaultCloseOperation(EXIT_ON_CLOSE)
+            gui.addWindowListener(new WindowAdapter() {
+                @Override
+                void windowClosed(WindowEvent e) {
+                }
+
+                @Override
+                void windowClosing(WindowEvent e) {
+                    if (gui.config.username != null) {
+                        log.info('window closing')
+                        gui.config.httpClient.logout(gui.config.username)
+                    }
+                }
+            })
             gui.start()
         }
     }

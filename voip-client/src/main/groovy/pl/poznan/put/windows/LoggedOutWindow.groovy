@@ -2,9 +2,9 @@ package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
+import pl.poznan.put.pubsub.RedisClient
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.LoginResponse
-import pl.poznan.put.subpub.RedisClient
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -60,7 +60,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     config.username = usernameField.getText()
                     writeConfigToFile(config)
 
-                    config.httpClient.username = username
+                    config.username = username
                     config.redisClient = new RedisClient(loginResponse.subPubHost)
                     new LoggedInWindow(config).create(frame)
                 } else {

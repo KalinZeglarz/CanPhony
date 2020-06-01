@@ -2,10 +2,11 @@ package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.PhoneCallClient
+import pl.poznan.put.pubsub.Message
+import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.PhoneCallResponse
-import pl.poznan.put.subpub.Message
-import pl.poznan.put.subpub.MessageFactory
+import pl.poznan.put.structures.UserStatus
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -18,12 +19,12 @@ import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 
-import static pl.poznan.put.subpub.MessageAction.*
+import static pl.poznan.put.pubsub.MessageAction.*
 
 @Slf4j
 class LoggedInWindow extends Window {
 
-    private static final int USER_LIST_REQUEST_PERIOD = 30000
+    private static final int USER_LIST_REQUEST_PERIOD = 5000
     private Thread userListListenerThread
 
     JTextField searchField
@@ -45,16 +46,26 @@ class LoggedInWindow extends Window {
             }
             if (message.action == CALL_REQUEST && config.phoneCallClient == null) {
                 log.info("[${channelName}] received call request: " + message.content)
-                config.redisClient.unsubscribe(username)
                 PhoneCallResponse phoneCallResponse = PhoneCallResponse.parseJSON(message.content)
-                config.currentSessionId = phoneCallResponse.sessionId
+                SwingUtilities.invokeLater {
+                    boolean accepted = !JOptionPane.showOptionDialog(frame,
+                            "${phoneCallResponse.sourceUsername} wants to start a call with you.", "Call Request",
+                            JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+                            ['Accept', 'Reject'] as String[], 'Accept')
+                    if (accepted) {
+                        config.redisClient.unsubscribe(username)
+                        config.currentSessionId = phoneCallResponse.sessionId
 
-                config.currentCallUsername = phoneCallResponse.sourceUsername
-                config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
-                config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
-                config.phoneCallClient.start()
-                userListListenerThread.interrupt()
-                new CallWindow(config).create(frame)
+                        config.currentCallUsername = phoneCallResponse.sourceUsername
+                        config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
+                        config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
+                        config.phoneCallClient.start()
+                        userListListenerThread.interrupt()
+                        new CallWindow(config).create(frame)
+                    } else {
+                        config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(REJECT_CALL, username))
+                    }
+                }
             }
         }
     }
@@ -80,7 +91,11 @@ class LoggedInWindow extends Window {
                 config.phoneCallClient.stop()
                 config.phoneCallClient = null
                 config.currentSessionId = null
-                redisCallRequestSubscribe(config.httpClient.username)
+                redisCallRequestSubscribe(config.username)
+            } else if (message.action == REJECT_CALL) {
+                log.info("[${channelName}] received call reject: " + message.content)
+                config.redisClient.unsubscribe(channelName)
+                redisCallRequestSubscribe(config.username)
             }
         }
     }
@@ -98,7 +113,7 @@ class LoggedInWindow extends Window {
                 }
                 config.currentCallUsername = contactsTable.getModel().getValueAt(row, 0).toString()
                 // Try to connect
-                PhoneCallResponse response = config.httpClient.startCall(config.currentCallUsername)
+                PhoneCallResponse response = config.httpClient.startCall(config.username, config.currentCallUsername)
                 config.currentSessionId = response.sessionId
                 redisStartCallSubscribe(response)
             }
@@ -111,6 +126,8 @@ class LoggedInWindow extends Window {
             void actionPerformed(ActionEvent e) {
                 log.info("clicked log out button")
                 userListListenerThread.interrupt()
+                config.httpClient.logout()
+                config.username = null
                 new LoggedOutWindow(config).create(frame)
             }
         }
@@ -119,10 +136,10 @@ class LoggedInWindow extends Window {
     private void createUserListListenerThread() {
         userListListenerThread = new Thread({
             while (!Thread.currentThread().isInterrupted()) {
-                Set<String> userList = config.httpClient.getUserList()
+                Map<String, UserStatus> userList = config.httpClient.getUserList(config.username)
                 model.setRowCount(0)
-                for (String user in userList) {
-                    model.addRow(user)
+                for (Map.Entry<String, UserStatus> user in userList) {
+                    model.addRow(user.key, user.value.toString().toLowerCase())
                 }
                 sleep(USER_LIST_REQUEST_PERIOD)
             }
@@ -189,7 +206,8 @@ class LoggedInWindow extends Window {
 
     private JPanel createContactsPanel() {
         model = new DefaultTableModel()
-        model.addColumn("Usernames")
+        model.addColumn("Username")
+        model.addColumn("Status")
         contactsTable = new JTable(model)
         contactsTable.setDefaultEditor(Object.class, null)
         sorter = new TableRowSorter<TableModel>(model)

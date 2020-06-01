@@ -1,8 +1,7 @@
 package pl.poznan.put.controllers
 
 import groovy.util.logging.Slf4j
-import pl.poznan.put.subpub.RedisClient
-import pl.poznan.put.subpub.Message
+import pl.poznan.put.pubsub.RedisClient
 
 @Slf4j
 class SubPubManager {

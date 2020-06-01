@@ -12,7 +12,6 @@ import java.net.http.HttpResponse
 class VoipHttpClient {
 
     String serverAddress
-    String username
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_2)
@@ -38,7 +37,7 @@ class VoipHttpClient {
                 .build()
     }
 
-    PhoneCallResponse startCall(String targetUsername) {
+    PhoneCallResponse startCall(String username, String targetUsername) {
         JSONObject body = new PhoneCallRequest(sourceUsername: username, targetUsername: targetUsername).toJSON()
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(new URI("http://127.0.0.1:8080/phone-call/start-call"))
@@ -51,13 +50,13 @@ class VoipHttpClient {
         return PhoneCallResponse.parseJSON(response.body())
     }
 
-    Set<String> getUserList() {
+    Map<String, UserStatus> getUserList(String username) {
         log.info("getting user list")
         HttpRequest request = buildGetRequest("/account/user-list")
         HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
 
         log.info("received: " + response.body())
-        Set<String> result = UserListResponse.parseJSON(response.body()).userList
+        Map<String, UserStatus> result = UserListResponse.parseJSON(response.body()).userList
         result.remove(username)
         return result
     }
@@ -81,6 +80,18 @@ class VoipHttpClient {
             return null
         }
         return LoginResponse.parseJSON(response.body())
+    }
+
+    void logout(String username) {
+        log.info("logging out")
+        JSONObject body = new LoginRequest(username: username, password: null).toJSON()
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI("http://${serverAddress}/account/logout"))
+                .setHeader("User-Agent", "Java 11 HttpClient Bot")
+                .setHeader("Content-Type", "application/json")
+                .method("DELETE", HttpRequest.BodyPublishers.ofString(body.toString()))
+                .build()
+        httpClient.send(request, HttpResponse.BodyHandlers.ofString())
     }
 
     boolean register(String username, String password) {

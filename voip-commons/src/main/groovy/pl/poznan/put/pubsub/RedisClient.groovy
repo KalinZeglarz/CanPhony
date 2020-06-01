@@ -1,4 +1,4 @@
-package pl.poznan.put.subpub
+package pl.poznan.put.pubsub
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.GlobalConstants
@@ -56,7 +56,7 @@ class RedisClient {
         })
         subscriberThreads.put(channelName, t)
         t.start()
-        t.setName(t.getName().replaceAll('Thread', 'subpub'))
+        t.setName(t.getName().replaceAll('Thread', 'pubsub'))
         sleep(500) /* needed for thread initialization */
         channels.put(channelName, new Tuple2(channel, subscriber))
         log.info("[${channelName}] finished subscription (thread name: ${t.getName()})")

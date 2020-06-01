@@ -1,4 +1,4 @@
-package pl.poznan.put.subpub
+package pl.poznan.put.pubsub
 
 import pl.poznan.put.structures.JSONable
 

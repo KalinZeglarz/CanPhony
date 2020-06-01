@@ -1,9 +1,9 @@
 package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
+import pl.poznan.put.pubsub.Message
+import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.ClientConfig
-import pl.poznan.put.subpub.Message
-import pl.poznan.put.subpub.MessageFactory
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -12,7 +12,7 @@ import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 import java.util.concurrent.TimeUnit
 
-import static pl.poznan.put.subpub.MessageAction.END_CALL
+import static pl.poznan.put.pubsub.MessageAction.END_CALL
 
 @Slf4j
 class CallWindow extends Window {

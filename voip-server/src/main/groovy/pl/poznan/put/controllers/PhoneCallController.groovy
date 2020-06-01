@@ -6,13 +6,15 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import pl.poznan.put.managers.DatabaseManager
 import pl.poznan.put.managers.PhoneCallManager
+import pl.poznan.put.pubsub.Message
+import pl.poznan.put.pubsub.MessageAction
+import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.PhoneCallParamsFactory
 import pl.poznan.put.structures.PhoneCallRequest
 import pl.poznan.put.structures.PhoneCallResponse
-import pl.poznan.put.subpub.Message
-import pl.poznan.put.subpub.MessageAction
-import pl.poznan.put.subpub.MessageFactory
+import pl.poznan.put.structures.UserStatus
 
 @Slf4j
 @RestController()
@@ -29,7 +31,8 @@ class PhoneCallController {
 
         Message message = MessageFactory.createMessage(MessageAction.CALL_REQUEST, phoneCallResponses.getItem2())
         SubPubManager.redisClient.publishMessage(phoneCallRequest.targetUsername, message)
-
+        DatabaseManager.setUserStatus(phoneCallRequest.sourceUsername, UserStatus.BUSY)
+        DatabaseManager.setUserStatus(phoneCallRequest.targetUsername, UserStatus.BUSY)
         return new ResponseEntity(phoneCallResponses.getItem1().toJSON().toString(), HttpStatus.OK)
     }
 

@@ -4,16 +4,18 @@ import groovy.util.logging.Slf4j
 import groovyjarjarantlr4.v4.runtime.misc.Tuple2
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.controllers.SubPubManager
+import pl.poznan.put.pubsub.Message
+import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.streaming.UdpAudioForwarder
 import pl.poznan.put.structures.PhoneCallParams
 import pl.poznan.put.structures.PhoneCallResponse
-import pl.poznan.put.subpub.Message
-import pl.poznan.put.subpub.MessageAction
+import pl.poznan.put.structures.UserStatus
 
 @Slf4j
 class PhoneCallManager {
 
     static Map<Integer, Tuple2<UdpAudioForwarder, UdpAudioForwarder>> phoneCallForwarders = new HashMap<>()
+    static Map<Integer, Tuple2<String, String>> phoneCallUsers = new HashMap<>()
     private static int forwarderPort = GlobalConstants.FORWARDER_MIN_PORT
     static final int receiverPort = GlobalConstants.RECEIVER_PORT
     static final int streamerPort = GlobalConstants.STREAMER_PORT
@@ -33,15 +35,23 @@ class PhoneCallManager {
                 streamerPort: streamerPort, receiverAddress: sourceUserAddress, receiverPort: receiverPort,
                 forwarderPort: forwarderPort2, audioQuality: params.audioQuality, bufferSize: params.bufferSize)
         phoneCallForwarders.put(params.sessionId, new Tuple2(audioForwarder1, audioForwarder2))
+        phoneCallUsers.put(params.sessionId, new Tuple2(params.sourceUsername, params.targetUsername))
 
         SubPubManager.redisClient.subscribeChannel(params.sessionId.toString()) { String channelName,
                                                                                   String messageString ->
+            if (channelName != params.sessionId.toString()) {
+                return
+            }
             Message message = Message.parseJSON(messageString)
             if (message.action == MessageAction.END_CALL) {
                 log.info("[${channelName}] received end call")
                 audioForwarder1.stop()
                 audioForwarder2.stop()
                 phoneCallForwarders.remove(channelName)
+
+                DatabaseManager.setUserStatus(phoneCallUsers[channelName.toInteger()].item1, UserStatus.ACTIVE)
+                DatabaseManager.setUserStatus(phoneCallUsers[channelName.toInteger()].item2, UserStatus.ACTIVE)
+                phoneCallUsers.remove(channelName)
                 SubPubManager.redisClient.unsubscribe(channelName)
             }
         }

@@ -19,6 +19,7 @@ class AccountController {
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
+        log.info('received login request')
         AccountStatus accountStatus = DatabaseManager.checkAccount(loginRequest)
         if (accountStatus != AccountStatus.SUCCESS) {
             LoginResponse response = null
@@ -31,10 +32,20 @@ class AccountController {
         }
 
         DatabaseManager.updateUserAddress(loginRequest.username, request.remoteAddr)
+        DatabaseManager.setUserStatus(loginRequest.username, UserStatus.ACTIVE)
 
         LoginResponse response = new LoginResponse(subPubHost: SubPubManager.getRedisHost(),
                 subPubPort: GlobalConstants.REDIS_PORT)
         return new ResponseEntity(response, HttpStatus.CREATED)
+    }
+
+    @DeleteMapping(value = "/logout")
+    @ResponseBody
+    ResponseEntity logout(@RequestBody LoginRequest loginRequest) {
+        log.info('received logout request')
+        DatabaseManager.updateUserAddress(loginRequest.username, null)
+        DatabaseManager.setUserStatus(loginRequest.username, UserStatus.INACTIVE)
+        return new ResponseEntity(HttpStatus.OK)
     }
 
     @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -54,7 +65,7 @@ class AccountController {
     @ResponseBody
     ResponseEntity<ApiResponse> userList() {
         log.info('received user list request')
-        Set<String> userList = DatabaseManager.getUserList()
+        Map<String, UserStatus> userList = DatabaseManager.getUserList()
         return new ResponseEntity(new UserListResponse(userList: userList), HttpStatus.OK)
     }
 

@@ -6,6 +6,7 @@ import org.springframework.core.io.Resource
 import pl.poznan.put.structures.AccountStatus
 import pl.poznan.put.structures.LoginRequest
 import pl.poznan.put.structures.PasswordPolicy
+import pl.poznan.put.structures.UserStatus
 
 import java.sql.*
 
@@ -79,7 +80,8 @@ class DatabaseManager {
 
     static boolean createAccount(String username, String password) {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String query = "insert into accounts (username, password) values ('${username}','${password}')"
+            String query = "insert into accounts (username, password, status) " +
+                    "values ('${username}','${password}','${UserStatus.INACTIVE.toString()}')"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
             prepareStatement.execute()
         } catch (SQLException ignored) {
@@ -91,6 +93,14 @@ class DatabaseManager {
     static boolean updateUserAddress(String username, String ipAddress) throws SQLException {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String query = "update accounts set ipv4_address='${ipAddress}' where username='${username}'"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            return prepareStatement.execute()
+        }
+    }
+
+    static boolean setUserStatus(String username, UserStatus userStatus) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "update accounts set status='${userStatus.toString()}' where username='${username}'"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
             return prepareStatement.execute()
         }
@@ -121,14 +131,20 @@ class DatabaseManager {
         return result
     }
 
-    static Set<String> getUserList() {
-        Set<String> result = []
+    static Map<String, UserStatus> getUserList() {
+        Map<String, UserStatus> result = new HashMap<>()
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            String query = "select username from accounts"
+            String query = "select username, status from accounts"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
             try (ResultSet resultSet = prepareStatement.executeQuery()) {
                 while (resultSet.next()) {
-                    result.add(resultSet.getString(1))
+                    String userStatusText = resultSet.getString(2)
+                    UserStatus userStatus = null
+                    if (userStatusText != null) {
+                        userStatus = UserStatus.valueOf(userStatusText)
+                    }
+
+                    result.put(resultSet.getString(1), userStatus)
                 }
             }
         }

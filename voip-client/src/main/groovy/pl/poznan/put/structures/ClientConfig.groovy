@@ -4,7 +4,7 @@ import groovy.transform.ToString
 import org.json.JSONObject
 import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.VoipHttpClient
-import pl.poznan.put.subpub.RedisClient
+import pl.poznan.put.pubsub.RedisClient
 
 @ToString
 class ClientConfig implements JSONable {

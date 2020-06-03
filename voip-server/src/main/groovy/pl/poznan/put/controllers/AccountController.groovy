@@ -41,10 +41,10 @@ class AccountController {
 
     @DeleteMapping(value = "/logout")
     @ResponseBody
-    ResponseEntity logout(@RequestBody LoginRequest loginRequest) {
+    ResponseEntity logout(@RequestParam String username) {
         log.info('received logout request')
-        DatabaseManager.updateUserAddress(loginRequest.username, null)
-        DatabaseManager.setUserStatus(loginRequest.username, UserStatus.INACTIVE)
+        DatabaseManager.updateUserAddress(username, null)
+        DatabaseManager.setUserStatus(username, UserStatus.INACTIVE)
         return new ResponseEntity(HttpStatus.OK)
     }
 
@@ -52,6 +52,7 @@ class AccountController {
     @ResponseBody
     ResponseEntity<ApiResponse> register(@RequestBody LoginRequest loginRequest) {
         log.info('received register request: ' + loginRequest.toJSON().toString())
+
         boolean created = DatabaseManager.createAccount(loginRequest)
         log.info('user created: ' + created)
         if (created) {

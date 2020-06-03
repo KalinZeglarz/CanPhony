@@ -26,6 +26,7 @@ class LoggedInWindow extends Window {
 
     private static final int USER_LIST_REQUEST_PERIOD = 5000
     private Thread userListListenerThread
+    private stopUserListListener = false
 
     JTextField searchField
     DefaultTableModel model
@@ -125,7 +126,7 @@ class LoggedInWindow extends Window {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked log out button")
-                userListListenerThread.interrupt()
+                stopUserListListener = true
                 config.httpClient.logout()
                 config.username = null
                 new LoggedOutWindow(config).create(frame)
@@ -135,7 +136,7 @@ class LoggedInWindow extends Window {
 
     private void createUserListListenerThread() {
         userListListenerThread = new Thread({
-            while (!Thread.currentThread().isInterrupted()) {
+            while (!stopUserListListener) {
                 Map<String, UserStatus> userList = config.httpClient.getUserList(config.username)
                 model.setRowCount(0)
                 for (Map.Entry<String, UserStatus> user in userList) {
@@ -143,6 +144,7 @@ class LoggedInWindow extends Window {
                 }
                 sleep(USER_LIST_REQUEST_PERIOD)
             }
+            log.info('stopped user list listener thread')
         })
         userListListenerThread.start()
     }

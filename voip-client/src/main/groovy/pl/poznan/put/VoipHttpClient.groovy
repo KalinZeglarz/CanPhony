@@ -1,112 +1,113 @@
 package pl.poznan.put
 
 import groovy.util.logging.Slf4j
+import org.apache.http.HttpResponse
+import org.apache.http.client.HttpClient
+import org.apache.http.client.methods.HttpDelete
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.client.methods.HttpPost
+import org.apache.http.conn.ssl.NoopHostnameVerifier
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy
+import org.apache.http.entity.StringEntity
+import org.apache.http.impl.client.HttpClients
+import org.apache.http.ssl.SSLContextBuilder
+import org.apache.http.util.EntityUtils
 import org.json.JSONObject
 import pl.poznan.put.structures.*
 
-import java.net.http.HttpClient
-import java.net.http.HttpRequest
-import java.net.http.HttpResponse
+import javax.net.ssl.HostnameVerifier
+import javax.net.ssl.SSLContext
 
 @Slf4j
 class VoipHttpClient {
 
     String serverAddress
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_2)
-            .build()
+    private final HttpClient httpClient
+
 
     VoipHttpClient(String serverAddress, String serverPort) throws ConnectException {
         this.serverAddress = serverAddress + ":" + serverPort
+
+        SSLContext sslContext = SSLContextBuilder.create()
+                .loadTrustMaterial(new TrustSelfSignedStrategy())
+                .build()
+        HostnameVerifier allowAllHosts = new NoopHostnameVerifier()
+        SSLConnectionSocketFactory connectionFactory = new SSLConnectionSocketFactory(sslContext, allowAllHosts)
+
+        httpClient = HttpClients.custom()
+                .setSSLSocketFactory(connectionFactory)
+                .build()
         checkConnection()
     }
 
     private boolean checkConnection() {
         log.info("checking connection")
-        HttpRequest request = buildGetRequest("/")
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        return response.statusCode() == 200
-    }
-
-    private HttpRequest buildGetRequest(String endpoint) {
-        return HttpRequest.newBuilder()
-                .uri(new URI("http://${serverAddress}${endpoint}"))
-                .setHeader("User-Agent", "Java 11 HttpClient")
-                .GET()
-                .build()
+        HttpGet request = new HttpGet("https://${serverAddress}/")
+        HttpResponse response = httpClient.execute(request)
+        return response.getStatusLine().getStatusCode() == 200
     }
 
     PhoneCallResponse startCall(String username, String targetUsername) {
         JSONObject body = new PhoneCallRequest(sourceUsername: username, targetUsername: targetUsername).toJSON()
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://127.0.0.1:8080/phone-call/start-call"))
-                .setHeader("User-Agent", "Java 11 HttpClient Bot")
-                .setHeader("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                .build()
+        HttpPost request = new HttpPost("https://${serverAddress}/phone-call/start-call")
+        request.setEntity(new StringEntity(body.toString()))
+        request.setHeader("Content-Type", "application/json")
+        HttpResponse response = httpClient.execute(request)
 
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        return PhoneCallResponse.parseJSON(response.body())
+        return PhoneCallResponse.parseJSON(EntityUtils.toString(response.getEntity()))
     }
 
     Map<String, UserStatus> getUserList(String username) {
         log.info("getting user list")
-        HttpRequest request = buildGetRequest("/account/user-list")
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        HttpGet request = new HttpGet("https://${serverAddress}/account/user-list")
+        HttpResponse response = httpClient.execute(request)
 
-        log.info("received: " + response.body())
-        Map<String, UserStatus> result = UserListResponse.parseJSON(response.body()).userList
+        String responseBody = EntityUtils.toString(response.getEntity())
+        log.info("received: " + responseBody)
+        Map<String, UserStatus> result = UserListResponse.parseJSON(responseBody).userList
         result.remove(username)
         return result
     }
 
-    private HttpResponse<String> accountPost(String username, String password, String endpoint) {
+    private HttpResponse accountPost(String username, String password, String endpoint) {
         JSONObject body = new LoginRequest(username: username, password: password).toJSON()
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://${serverAddress}/account/${endpoint}"))
-                .setHeader("User-Agent", "Java 11 HttpClient Bot")
-                .setHeader("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                .build()
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
-        return response
+        HttpPost request = new HttpPost("https://${serverAddress}/account/${endpoint}")
+        request.setEntity(new StringEntity(body.toString()))
+        request.setHeader("Content-Type", "application/json")
+        return httpClient.execute(request)
     }
 
     LoginResponse login(String username, String password) {
         log.info("logging in")
-        HttpResponse<String> response = accountPost(username, password.digest("SHA-512"), "login")
-        if (response == null) {
-            return null
-        }
-        return LoginResponse.parseJSON(response.body())
+        HttpResponse response = accountPost(username, password, "login")
+        String responseBody = EntityUtils.toString(response.getEntity())
+        log.info("received: " + responseBody)
+        return LoginResponse.parseJSON(responseBody)
     }
 
     void logout(String username) {
         log.info("logging out")
-        JSONObject body = new LoginRequest(username: username, password: null).toJSON()
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(new URI("http://${serverAddress}/account/logout"))
-                .setHeader("User-Agent", "Java 11 HttpClient Bot")
-                .setHeader("Content-Type", "application/json")
-                .method("DELETE", HttpRequest.BodyPublishers.ofString(body.toString()))
-                .build()
-        httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        String queryString = "?username=${username}"
+        HttpDelete request = new HttpDelete("https://${serverAddress}/account/logout${queryString}")
+        httpClient.execute(request)
     }
 
     boolean register(String username, String password) {
         log.info('registering account')
-        HttpResponse<String> response = accountPost(username, password.digest("SHA-512"), "register")
-        return response.statusCode() == 201
+        HttpResponse response = accountPost(username, password, "register")
+        return response.getStatusLine().getStatusCode() == 201
     }
 
     PasswordPolicy getPasswordPolicy() {
-        log.info("getting user list")
-        HttpRequest request = buildGetRequest("/account/password-policy")
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString())
+        log.info("getting password policy")
+        HttpGet request = new HttpGet("https://${serverAddress}/account/password-policy")
+        HttpResponse response = httpClient.execute(request)
 
-        log.info("received: " + response.body())
-        return PasswordPolicy.parseJSON(response.body())
+        String responseBody = EntityUtils.toString(response.getEntity())
+        log.info("received: " + responseBody)
+        return PasswordPolicy.parseJSON(responseBody)
     }
 
 }

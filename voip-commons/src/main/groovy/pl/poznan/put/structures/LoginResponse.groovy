@@ -10,8 +10,12 @@ class LoginResponse extends ApiResponse {
     static LoginResponse parseJSON(final String text) {
         JSONObject parsedJson = new JSONObject(text)
         String message = parsedJson.getString('message')
-        String subPubHost = parsedJson.getString('subPubHost')
-        int subPubPort = parsedJson.getInt('subPubPort')
+        String subPubHost = null
+        int subPubPort = -1
+        if (message.isBlank()) {
+            subPubHost = parsedJson.getString('subPubHost')
+            subPubPort = parsedJson.getInt('subPubPort')
+        }
         return new LoginResponse(message: message, subPubHost: subPubHost, subPubPort: subPubPort)
     }
 }

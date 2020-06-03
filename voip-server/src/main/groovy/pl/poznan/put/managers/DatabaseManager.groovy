@@ -3,6 +3,7 @@ package pl.poznan.put.managers
 import groovy.util.logging.Slf4j
 import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
+import pl.poznan.put.PasswordHash
 import pl.poznan.put.structures.AccountStatus
 import pl.poznan.put.structures.LoginRequest
 import pl.poznan.put.structures.PasswordPolicy
@@ -66,7 +67,7 @@ class DatabaseManager {
                 if (!resultSet.next()) {
                     return AccountStatus.NOT_EXISTS
                 }
-                if (resultSet.getString(1) != password) {
+                if (!PasswordHash.validatePassword(password, resultSet.getString(1))) {
                     return AccountStatus.INCORRECT_PASSWORD
                 }
             }
@@ -79,6 +80,7 @@ class DatabaseManager {
     }
 
     static boolean createAccount(String username, String password) {
+        password = PasswordHash.createHash(password)
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String query = "insert into accounts (username, password, status) " +
                     "values ('${username}','${password}','${UserStatus.INACTIVE.toString()}')"

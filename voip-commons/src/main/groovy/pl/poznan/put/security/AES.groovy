@@ -15,7 +15,7 @@ class AES {
     private static SecretKeySpec secretKey
     private static byte[] key
 
-    static void setKey(String myKey) {
+    private static void setKey(String myKey) {
         MessageDigest sha
         try {
             key = myKey.getBytes("UTF-8")

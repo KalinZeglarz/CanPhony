@@ -63,10 +63,6 @@ class RedisClient {
         log.info("subscribed channels: ${channels.keySet()}")
     }
 
-    boolean unsubscribe(int channelName) {
-        unsubscribe(channelName.toString())
-    }
-
     boolean unsubscribe(String channelName) {
         log.info("[${channelName}] unsubscribing")
         if (channels.containsKey(channelName)) {

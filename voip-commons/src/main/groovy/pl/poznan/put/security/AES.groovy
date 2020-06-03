@@ -1,35 +1,20 @@
 package pl.poznan.put.security
 
-import org.apache.commons.lang3.RandomStringUtils
-
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
-
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
-//Based on: https://howtodoinjava.com/security/java-aes-encryption-example/
+/*
+ * Based on: https://howtodoinjava.com/security/java-aes-encryption-example/
+ */
 
 class AES {
 
     private static SecretKeySpec secretKey
-    private static byte[] key
 
-    private static void setKey(String myKey) {
-        MessageDigest sha
-        try {
-            key = myKey.getBytes("UTF-8")
-            sha = MessageDigest.getInstance("SHA-1")
-            key = sha.digest(key)
-            key = Arrays.copyOf(key, 16)
-            secretKey = new SecretKeySpec(key, "AES")
-        }
-        catch (NoSuchAlgorithmException e) {
-            e.printStackTrace()
-        }
-        catch (UnsupportedEncodingException e) {
-            e.printStackTrace()
-        }
+    private static void setKey(String key) {
+        key = key.getBytes("UTF-8").digest("SHA-1")
+        key = key.substring(0, 16)
+        secretKey = new SecretKeySpec(key.bytes, "AES")
     }
 
     static String encrypt(String toEncrypt, String key) {
@@ -58,8 +43,7 @@ class AES {
         return null
     }
 
-    static void main(String[] args)
-    {
+    static void main(String[] args) {
         final String secretKey = "123456789012345678"
 
         String originalString = "howtodoinjava.com"

@@ -127,7 +127,7 @@ class LoggedInWindow extends Window {
             void actionPerformed(ActionEvent e) {
                 log.info("clicked log out button")
                 stopUserListListener = true
-                config.httpClient.logout()
+                config.httpClient.logout(config.username)
                 config.username = null
                 new LoggedOutWindow(config).create(frame)
             }

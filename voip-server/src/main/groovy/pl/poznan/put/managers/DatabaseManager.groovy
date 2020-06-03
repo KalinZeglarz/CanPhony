@@ -100,11 +100,12 @@ class DatabaseManager {
         }
     }
 
-    static boolean setUserStatus(String username, UserStatus userStatus) {
+    static void setUserStatus(String username, UserStatus userStatus) {
+        log.info("updating user ${username} status to ${userStatus.toString()}")
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String query = "update accounts set status='${userStatus.toString()}' where username='${username}'"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
-            return prepareStatement.execute()
+            prepareStatement.execute()
         }
     }
 

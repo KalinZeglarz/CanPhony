@@ -1,13 +1,14 @@
-package pl.poznan.put.pubsub
+package pl.poznan.put.security
 
-import java.io.UnsupportedEncodingException
+import org.apache.commons.lang3.RandomStringUtils
+
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.Arrays
-import java.util.Base64
 
 import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
+
+//Based on: https://howtodoinjava.com/security/java-aes-encryption-example/
 
 class AES {
 
@@ -15,7 +16,7 @@ class AES {
     private static byte[] key
 
     static void setKey(String myKey) {
-        MessageDigest sha = null
+        MessageDigest sha
         try {
             key = myKey.getBytes("UTF-8")
             sha = MessageDigest.getInstance("SHA-1")
@@ -56,4 +57,18 @@ class AES {
         }
         return null
     }
+
+    static void main(String[] args)
+    {
+        final String secretKey = "123456789012345678"
+
+        String originalString = "howtodoinjava.com"
+        String encryptedString = encrypt(originalString, secretKey)
+        String decryptedString = decrypt(encryptedString, secretKey)
+
+        System.out.println(originalString)
+        System.out.println(encryptedString)
+        System.out.println(decryptedString)
+    }
 }
+

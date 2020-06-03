@@ -27,6 +27,7 @@ class RedisClient {
         JedisPubSub channel = new JedisPubSub() {
             @Override
             void onMessage(String channel, String messageString) {
+                // TODO: Add messageString decryption
                 log.info("[${channel}] received message: ${messageString}")
                 if (onMessage != null) {
                     onMessage(channel, messageString)
@@ -82,8 +83,13 @@ class RedisClient {
     }
 
     void publishMessage(String channelName, Message message) {
-        log.info("[${channelName}] publishing message: ${message.toJSON().toString()}")
-        publisher.publish(channelName, message.toJSON().toString())
+        publishMessage(channelName, message.toJSON().toString())
+    }
+
+    void publishMessage(String channelName, String message) {
+        log.info("[${channelName}] publishing message: ${message}")
+        // TODO: Add AES encryption here
+        publisher.publish(channelName, message)
     }
 
 }

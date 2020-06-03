@@ -6,7 +6,8 @@ create table accounts
             primary key autoincrement,
     username     text    not null,
     password     text    not null,
-    ipv4_address text
+    ipv4_address text,
+    status       text
 );
 
 create unique index accounts_id_account_uindex
@@ -29,4 +30,3 @@ create unique index password_policy_id_policy_uindex
 
 create unique index password_policy_policy_name_uindex
     on password_policy (policy_name);
-

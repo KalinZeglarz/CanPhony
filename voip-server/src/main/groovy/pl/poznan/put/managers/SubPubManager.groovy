@@ -1,4 +1,4 @@
-package pl.poznan.put.controllers
+package pl.poznan.put.managers
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.pubsub.RedisClient

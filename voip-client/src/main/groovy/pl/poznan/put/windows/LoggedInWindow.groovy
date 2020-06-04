@@ -55,16 +55,15 @@ class LoggedInWindow extends Window {
                             ['Accept', 'Reject'] as String[], 'Accept')
                     if (accepted) {
                         config.redisClient.unsubscribe(username)
-                        config.currentSessionId = phoneCallResponse.sessionId
 
                         config.currentCallUsername = phoneCallResponse.sourceUsername
-                        config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
+                        config.redisClient.publishMessage(config.currentCallUsername, MessageFactory.createMessage(ACCEPT_CALL, username))
                         config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
                         config.phoneCallClient.start()
                         userListListenerThread.interrupt()
                         new CallWindow(config).create(frame)
                     } else {
-                        config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(REJECT_CALL, username))
+                        config.httpClient.rejectCall(phoneCallResponse.targetUsername, phoneCallResponse.sourceUsername)
                     }
                 }
             }
@@ -72,10 +71,10 @@ class LoggedInWindow extends Window {
     }
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
-        log.info("[${response.sessionId}] subscribing with start call callback")
+        log.info("[${response.sourceUsername}] subscribing with start call callback")
         config.redisClient.unsubscribe(config.username)
-        config.redisClient.subscribeChannel(response.sessionId.toString()) { String channelName,
-                                                                             String messageString ->
+        config.redisClient.subscribeChannel(config.username) { String channelName,
+                                                               String messageString ->
             Message message = Message.parseJSON(messageString)
             if (message.sender == config.username) {
                 return
@@ -91,7 +90,6 @@ class LoggedInWindow extends Window {
                 config.redisClient.unsubscribe(channelName)
                 config.phoneCallClient.stop()
                 config.phoneCallClient = null
-                config.currentSessionId = null
                 redisCallRequestSubscribe(config.username)
             } else if (message.action == REJECT_CALL) {
                 log.info("[${channelName}] received call reject: " + message.content)
@@ -115,7 +113,6 @@ class LoggedInWindow extends Window {
                 config.currentCallUsername = contactsTable.getModel().getValueAt(row, 0).toString()
                 // Try to connect
                 PhoneCallResponse response = config.httpClient.startCall(config.username, config.currentCallUsername)
-                config.currentSessionId = response.sessionId
                 redisStartCallSubscribe(response)
             }
         }
@@ -127,7 +124,7 @@ class LoggedInWindow extends Window {
             void actionPerformed(ActionEvent e) {
                 log.info("clicked log out button")
                 stopUserListListener = true
-                config.httpClient.logout()
+                config.httpClient.logout(config.username)
                 config.username = null
                 new LoggedOutWindow(config).create(frame)
             }

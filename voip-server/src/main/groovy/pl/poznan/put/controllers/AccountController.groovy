@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.managers.DatabaseManager
+import pl.poznan.put.managers.SubPubManager
 import pl.poznan.put.structures.*
 
 import javax.servlet.http.HttpServletRequest
@@ -42,7 +43,7 @@ class AccountController {
     @DeleteMapping(value = "/logout")
     @ResponseBody
     ResponseEntity logout(@RequestParam String username) {
-        log.info('received logout request')
+        log.info("received logout request from user ${username}")
         DatabaseManager.updateUserAddress(username, null)
         DatabaseManager.setUserStatus(username, UserStatus.INACTIVE)
         return new ResponseEntity(HttpStatus.OK)

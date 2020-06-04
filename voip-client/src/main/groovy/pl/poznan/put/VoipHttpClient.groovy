@@ -59,6 +59,20 @@ class VoipHttpClient {
         return PhoneCallResponse.parseJSON(EntityUtils.toString(response.getEntity()))
     }
 
+    void endCall(String username, String targetUsername) {
+        String queryString = "?sourceUsername=${username}&targetUsername=${targetUsername}"
+        HttpDelete request = new HttpDelete("https://${serverAddress}/phone-call/end-call${queryString}")
+        request.setHeader("Content-Type", "application/json")
+        httpClient.execute(request)
+    }
+
+    void rejectCall(String username, String targetUsername) {
+        String queryString = "?sourceUsername=${username}&targetUsername=${targetUsername}"
+        HttpDelete request = new HttpDelete("https://${serverAddress}/phone-call/reject-call${queryString}")
+        request.setHeader("Content-Type", "application/json")
+        httpClient.execute(request)
+    }
+
     Map<String, UserStatus> getUserList(String username) {
         log.info("getting user list")
         HttpGet request = new HttpGet("https://${serverAddress}/account/user-list")

@@ -2,7 +2,6 @@ package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.pubsub.Message
-import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.windows.Window
 
@@ -23,19 +22,18 @@ class CallWindow extends Window {
 
     CallWindow(ClientConfig config) {
         super(config)
-        redisEndCallSubscribe(config.currentSessionId)
+        redisEndCallSubscribe()
     }
 
-    private void redisEndCallSubscribe(int sessionId) {
-        log.info("[${sessionId}] subscribing with end call callback")
-        config.redisClient.subscribeChannel(sessionId.toString()) { String channelName, String messageString ->
+    private void redisEndCallSubscribe() {
+        log.info("[${config.username}] subscribing with end call callback")
+        config.redisClient.subscribeChannel(config.username) { String channelName, String messageString ->
             Message message = Message.parseJSON(messageString)
             if (message.action == END_CALL && config.phoneCallClient != null) {
                 log.info("[${channelName}] received end call")
                 config.redisClient.unsubscribe(channelName)
                 config.phoneCallClient.stop()
                 config.phoneCallClient = null
-                config.currentSessionId = null
                 new LoggedInWindow(config).create(frame)
             }
         }
@@ -58,8 +56,7 @@ class CallWindow extends Window {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked end call button")
-                config.redisClient.publishMessage(config.currentSessionId,
-                        MessageFactory.createMessage(END_CALL, config.username))
+                config.httpClient.endCall(config.username, config.currentCallUsername)
                 new LoggedInWindow(config).create(frame)
             }
         })

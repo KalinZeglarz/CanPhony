@@ -6,7 +6,6 @@ import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.pubsub.RedisClient
-import pl.poznan.put.security.AES
 import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.LoginResponse
@@ -62,11 +61,6 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
     }
 
     private void redisEncryptionOkSubscribe(String username) {
-        String encryptedMessage = config.redisClient.encryptionSuite[username + "_diffie-hellman"].encrypt("OK!")
-        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, encryptedMessage)
-        config.redisClient.publishMessage(username + "_diffie-hellman", message)
-        println(encryptedMessage)
-
         config.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
             Message returnMessage = Message.parseJSON(messageString)
             if (returnMessage.sender == username) {
@@ -74,9 +68,12 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
             }
             String serverEncryptedMessage = StringMessage.fromJSON(returnMessage.content).str
             String decryptedMessage = config.redisClient.encryptionSuite[username + "_diffie-hellman"].decrypt(serverEncryptedMessage)
-            println(decryptedMessage)
             config.redisClient.unsubscribe(channelName)
         }
+
+        String encryptedMessage = config.redisClient.encryptionSuite[username + "_diffie-hellman"].encrypt("OK!")
+        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, encryptedMessage)
+        config.redisClient.publishMessage(username + "_diffie-hellman", message)
     }
 
     private ActionListener createLoginButtonListener() {

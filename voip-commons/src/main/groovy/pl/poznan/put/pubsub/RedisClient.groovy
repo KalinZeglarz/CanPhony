@@ -49,19 +49,17 @@ class RedisClient {
 
         Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
         Thread t = new Thread({
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    subscriber.subscribe(channel, channelName)
-                } catch (JedisConnectionException e) {
-                    log.info("[${channelName}] error occurred: ${e.getMessage()}")
-                }
+            try {
+                subscriber.subscribe(channel, channelName)
+            } catch (JedisConnectionException e) {
+                log.info("[${channelName}] error occurred: ${e.getMessage()}")
             }
         })
         subscriberThreads.put(channelName, t)
         t.start()
         t.setName(t.getName().replaceAll('Thread', 'pubsub'))
         sleep(500) /* needed for thread initialization */
-        channels.put(channelName, new Tuple2(channel, subscriber))
+        channels.put(channelName, new Tuple2(subscriber, channel))
         log.info("[${channelName}] finished subscription (thread name: ${t.getName()})")
         log.info("subscribed channels: ${channels.keySet()}")
     }
@@ -69,6 +67,7 @@ class RedisClient {
     boolean unsubscribe(String channelName) {
         log.info("[${channelName}] unsubscribing")
         if (channels.containsKey(channelName)) {
+            channels[channelName].v2.unsubscribe(channelName)
             channels.remove(channelName)
             subscriberThreads.get(channelName).interrupt()
             log.info("[${channelName}] finished unsubscription")

@@ -2,6 +2,7 @@ package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
+import pl.poznan.put.structures.AccountStatus
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.windows.Window
@@ -69,23 +70,23 @@ class RegistrationWindow extends Window implements SaveClientConfig {
                     return
                 }
 
-                PasswordPolicy policy = config.httpClient.getPasswordPolicy()
-                if (!policy.validatePassword(password)) {
-                    String messageTitle = "Password does not match password policy"
-                    JOptionPane.showMessageDialog(frame, mapToPanel(policy.toPrettyMap()), messageTitle,
-                            JOptionPane.PLAIN_MESSAGE)
-                    return
-                }
 
-                boolean registered = config.httpClient.register(username, password)
-                if (registered) {
+                AccountStatus accountStatus = config.httpClient.register(username, password)
+                if (accountStatus == AccountStatus.SUCCESS) {
                     JOptionPane.showMessageDialog(frame, "Account created successfully.")
                     config.serverAddress = serverAddressField.getText()
                     config.serverPort = serverPortField.getText()
                     writeConfigToFile(config)
                     new LoggedOutWindow(config).create(frame)
+                } else if (accountStatus == AccountStatus.USERNAME_USED) {
+                    JOptionPane.showMessageDialog(frame, "Username already in use.")
+                } else if (accountStatus == AccountStatus.PASSWORD_POLICY_NOT_MATCHED) {
+                    PasswordPolicy policy = config.httpClient.getPasswordPolicy()
+                    String messageTitle = "Password does not match password policy"
+                    JOptionPane.showMessageDialog(frame, mapToPanel(policy.toPrettyMap()), messageTitle,
+                            JOptionPane.PLAIN_MESSAGE)
                 } else {
-                    JOptionPane.showMessageDialog(frame, "Username already in use.",)
+                    JOptionPane.showMessageDialog(frame, "Something went wrong.")
                 }
             }
         }

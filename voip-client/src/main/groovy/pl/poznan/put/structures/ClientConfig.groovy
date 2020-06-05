@@ -13,7 +13,6 @@ class ClientConfig implements JSONable {
     VoipHttpClient httpClient = null
     RedisClient redisClient = null
     PhoneCallClient phoneCallClient = null
-    Integer currentSessionId = null
     String currentCallUsername = null
 
     /* saved to file */

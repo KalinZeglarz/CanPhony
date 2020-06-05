@@ -5,8 +5,8 @@ import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.ClientConfig
-import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.PhoneCallResponse
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -39,12 +39,8 @@ class LoggedInWindow extends Window {
     }
 
     private void redisCallRequestSubscribe(String username) {
-        log.info("[${username}] subscribing with call request callback")
-        config.redisClient.subscribeChannel(username) { String channelName, String messageString ->
-            Message message = Message.parseJSON(messageString)
-            if (message.sender == username) {
-                return
-            }
+        log.info("[server] subscribing with call request callback")
+        config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
             if (message.action == CALL_REQUEST && config.phoneCallClient == null) {
                 log.info("[${channelName}] received call request: " + message.content)
                 PhoneCallResponse phoneCallResponse = PhoneCallResponse.parseJSON(message.content)
@@ -55,16 +51,15 @@ class LoggedInWindow extends Window {
                             ['Accept', 'Reject'] as String[], 'Accept')
                     if (accepted) {
                         config.redisClient.unsubscribe(username)
-                        config.currentSessionId = phoneCallResponse.sessionId
 
                         config.currentCallUsername = phoneCallResponse.sourceUsername
-                        config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(ACCEPT_CALL, username))
+                        config.redisClient.publishMessage(username, config.currentCallUsername, MessageFactory.createMessage(ACCEPT_CALL, username))
                         config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
                         config.phoneCallClient.start()
                         userListListenerThread.interrupt()
                         new CallWindow(config).create(frame)
                     } else {
-                        config.redisClient.publishMessage(config.currentSessionId, MessageFactory.createMessage(REJECT_CALL, username))
+                        config.httpClient.rejectCall(phoneCallResponse.targetUsername, phoneCallResponse.sourceUsername)
                     }
                 }
             }
@@ -72,27 +67,15 @@ class LoggedInWindow extends Window {
     }
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
-        log.info("[${response.sessionId}] subscribing with start call callback")
-        config.redisClient.unsubscribe(config.username)
-        config.redisClient.subscribeChannel(response.sessionId.toString()) { String channelName,
-                                                                             String messageString ->
-            Message message = Message.parseJSON(messageString)
-            if (message.sender == config.username) {
-                return
-            }
+        log.info("[server] subscribing with start call callback")
+        config.redisClient.unsubscribe('server')
+        config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
                 config.phoneCallClient = new PhoneCallClient(config.serverAddress, response.forwarderPort)
                 config.phoneCallClient.start()
-                userListListenerThread.interrupt()
+                stopUserListListener = true
                 new CallWindow(config).create(frame)
-            } else if (message.action == END_CALL && config.phoneCallClient != null) {
-                log.info("[${channelName}] received end call: " + message.content)
-                config.redisClient.unsubscribe(channelName)
-                config.phoneCallClient.stop()
-                config.phoneCallClient = null
-                config.currentSessionId = null
-                redisCallRequestSubscribe(config.username)
             } else if (message.action == REJECT_CALL) {
                 log.info("[${channelName}] received call reject: " + message.content)
                 config.redisClient.unsubscribe(channelName)
@@ -115,7 +98,6 @@ class LoggedInWindow extends Window {
                 config.currentCallUsername = contactsTable.getModel().getValueAt(row, 0).toString()
                 // Try to connect
                 PhoneCallResponse response = config.httpClient.startCall(config.username, config.currentCallUsername)
-                config.currentSessionId = response.sessionId
                 redisStartCallSubscribe(response)
             }
         }

@@ -1,6 +1,7 @@
 package pl.poznan.put.pubsub
 
 import pl.poznan.put.structures.JSONable
+import pl.poznan.put.structures.StringMessage
 
 import java.time.LocalDateTime
 
@@ -20,6 +21,10 @@ class MessageFactory {
 
     static Message createMessage(final MessageAction messageAction, final JSONable object) {
         createMessage(messageAction, '', object)
+    }
+
+    static Message createMessage(final MessageAction messageAction, final String sender, final String content) {
+        createMessage(messageAction, sender, new StringMessage(str: content))
     }
 
     static Message createMessage(final MessageAction messageAction, final String sender, final JSONable object) {

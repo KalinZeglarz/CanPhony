@@ -2,6 +2,7 @@ package pl.poznan.put.pubsub
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.GlobalConstants
+import pl.poznan.put.security.EncryptionSuite
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPubSub
 import redis.clients.jedis.exceptions.JedisConnectionException
@@ -9,17 +10,25 @@ import redis.clients.jedis.exceptions.JedisConnectionException
 @Slf4j
 class RedisClient {
 
+    boolean checkMessageTarget = true
     protected final String redisHost
     protected final Jedis publisher
     protected final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
     protected final Map<String, Thread> subscriberThreads = new HashMap<>()
+    final Map<String, EncryptionSuite> encryptionSuites = new HashMap<>()
+
+    RedisClient(String redisHost, boolean checkMessageTarget) {
+        this.checkMessageTarget = checkMessageTarget
+        this.redisHost = redisHost
+        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
+    }
 
     RedisClient(String redisHost) {
         this.redisHost = redisHost
         publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
     }
 
-    void subscribeChannel(String channelName, Closure onMessage) {
+    void subscribeChannel(String channelName, String currentSubscriber, Closure onMessage) {
         log.info("[${channelName}] subscribing")
         if (channels.containsKey(channelName)) {
             unsubscribe(channelName)
@@ -27,10 +36,21 @@ class RedisClient {
         JedisPubSub channel = new JedisPubSub() {
             @Override
             void onMessage(String channel, String messageString) {
-                // TODO: Add messageString decryption
+                if (encryptionSuites[channel] != null) {
+                    log.info("[${channel}] received encrypted message: ${messageString}")
+                    messageString = encryptionSuites[channel].decrypt(messageString)
+                }
+                Message message = Message.parseJSON(messageString)
+                if (message.sender == currentSubscriber) {
+                    return
+                }
                 log.info("[${channel}] received message: ${messageString}")
+                if (checkMessageTarget && message.target != currentSubscriber) {
+                    log.info("[${channel}] received message to someone else")
+                }
+
                 if (onMessage != null) {
-                    onMessage(channel, messageString)
+                    onMessage(channel, message)
                 } else {
                     log.warn("[${channel}] empty onMessage callback")
                 }
@@ -47,19 +67,17 @@ class RedisClient {
 
         Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
         Thread t = new Thread({
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    subscriber.subscribe(channel, channelName)
-                } catch (JedisConnectionException e) {
-                    log.info("[${channelName}] error occurred: ${e.getMessage()}")
-                }
+            try {
+                subscriber.subscribe(channel, channelName)
+            } catch (JedisConnectionException e) {
+                log.info("[${channelName}] error occurred: ${e.getMessage()}")
             }
         })
         subscriberThreads.put(channelName, t)
         t.start()
         t.setName(t.getName().replaceAll('Thread', 'pubsub'))
         sleep(500) /* needed for thread initialization */
-        channels.put(channelName, new Tuple2(channel, subscriber))
+        channels.put(channelName, new Tuple2(subscriber, channel))
         log.info("[${channelName}] finished subscription (thread name: ${t.getName()})")
         log.info("subscribed channels: ${channels.keySet()}")
     }
@@ -67,6 +85,7 @@ class RedisClient {
     boolean unsubscribe(String channelName) {
         log.info("[${channelName}] unsubscribing")
         if (channels.containsKey(channelName)) {
+            channels[channelName].v2.unsubscribe(channelName)
             channels.remove(channelName)
             subscriberThreads.get(channelName).interrupt()
             log.info("[${channelName}] finished unsubscription")
@@ -78,17 +97,21 @@ class RedisClient {
         return false
     }
 
-    void publishMessage(int channelName, Message message) {
-        publishMessage(channelName.toString(), message)
+    void publishMessage(String target, Message message) {
+        publishMessage(target, target, message)
     }
 
-    void publishMessage(String channelName, Message message) {
-        publishMessage(channelName, message.toJSON().toString())
+    void publishMessage(String channelName, String target, Message message) {
+        message.target = target
+        publishMessageFinish(channelName, message.toJSON().toString())
     }
 
-    void publishMessage(String channelName, String message) {
+    private void publishMessageFinish(String channelName, String message) {
         log.info("[${channelName}] publishing message: ${message}")
-        // TODO: Add AES encryption here
+        if (encryptionSuites[channelName] != null) {
+            message = encryptionSuites[channelName].encrypt(message)
+            log.info("[${channelName}] sending encrypted message: ${message}")
+        }
         publisher.publish(channelName, message)
     }
 

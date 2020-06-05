@@ -7,26 +7,11 @@ import java.time.LocalDateTime
 
 class Message implements JSONable {
 
-    private LocalDateTime timeStamp = null
-    private MessageAction action = null
-    private String sender = null
-    private JSONObject content = null
-
-    LocalDateTime getTimeStamp() {
-        return timeStamp
-    }
-
-    MessageAction getAction() {
-        return action
-    }
-
-    String getSender() {
-        return sender
-    }
-
-    JSONObject getContent() {
-        return content
-    }
+    LocalDateTime timeStamp = null
+    MessageAction action = null
+    String sender = null
+    String target = null
+    JSONObject content = null
 
     @Override
     JSONObject toJSON() {
@@ -34,6 +19,7 @@ class Message implements JSONable {
         json.put('timestamp', timeStamp)
         json.put('action', action)
         json.put('sender', sender)
+        json.put('target', target)
         if (content != null) {
             json.put('content', content)
         }
@@ -45,11 +31,12 @@ class Message implements JSONable {
         LocalDateTime timeStamp = LocalDateTime.parse(parsedJson.getString('timestamp'))
         MessageAction messageAction = MessageAction.valueOf(parsedJson.getString('action'))
         String sender = parsedJson.getString('sender').toString()
+        String target = parsedJson.getString('target').toString()
         JSONObject json = null
         if (parsedJson.has('content')) {
             json = parsedJson.getJSONObject('content')
         }
-        return new Message(timeStamp: timeStamp, action: messageAction, sender: sender, content: json)
+        return new Message(timeStamp: timeStamp, action: messageAction, sender: sender, target: target, content: json)
     }
 
 }

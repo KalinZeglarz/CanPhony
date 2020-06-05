@@ -3,11 +3,9 @@ package pl.poznan.put.managers
 import groovy.util.logging.Slf4j
 import groovyjarjarantlr4.v4.runtime.misc.Tuple2
 import pl.poznan.put.GlobalConstants
-import pl.poznan.put.pubsub.Message
-import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.streaming.UdpAudioForwarder
 import pl.poznan.put.structures.PhoneCallParams
-import pl.poznan.put.structures.PhoneCallResponse
+import pl.poznan.put.structures.api.PhoneCallResponse
 
 @Slf4j
 class PhoneCallManager {
@@ -35,21 +33,6 @@ class PhoneCallManager {
                 forwarderPort: forwarderPort2, audioQuality: params.audioQuality, bufferSize: params.bufferSize)
         phoneCallForwarders.put(params.sessionId, new Tuple2(audioForwarder1, audioForwarder2))
 
-        PubSubManager.redisClient.subscribeChannel(params.sessionId.toString()) { String channelName,
-                                                                                  String messageString ->
-            if (channelName != params.sessionId.toString()) {
-                return
-            }
-            Message message = Message.parseJSON(messageString)
-            if (message.action == MessageAction.END_CALL) {
-                log.info("[${channelName}] received end call")
-                audioForwarder1.stop()
-                audioForwarder2.stop()
-                phoneCallForwarders.remove(channelName)
-
-                PubSubManager.redisClient.unsubscribe(channelName)
-            }
-        }
         audioForwarder1.start()
         audioForwarder2.start()
         final PhoneCallResponse response1 = new PhoneCallResponse(sourceUsername: params.sourceUsername,

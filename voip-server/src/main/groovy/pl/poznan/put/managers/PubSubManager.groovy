@@ -7,7 +7,7 @@ import pl.poznan.put.pubsub.RedisClient
 class PubSubManager {
 
     private static String redisHost = "localhost"
-    private static RedisClient redisClient = new RedisClient(redisHost)
+    private static RedisClient redisClient = new RedisClient(redisHost, false)
 
     static String getRedisHost() {
         return redisHost

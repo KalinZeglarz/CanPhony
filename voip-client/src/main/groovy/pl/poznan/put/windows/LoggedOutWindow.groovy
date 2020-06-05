@@ -8,14 +8,16 @@ import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.pubsub.RedisClient
 import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.ClientConfig
-import pl.poznan.put.structures.LoginResponse
 import pl.poznan.put.structures.StringMessage
+import pl.poznan.put.structures.api.LoginResponse
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
 import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
+
+import static pl.poznan.put.GlobalConstants.DH_POSTFIX
 
 @Slf4j
 class LoggedOutWindow extends Window implements SaveClientConfig {
@@ -24,6 +26,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
     JTextField serverPortField
     JTextField usernameField
     JPasswordField passwordField
+    boolean encryptionSetUpped = false
 
     LoggedOutWindow(ClientConfig config) {
         super(config)
@@ -42,38 +45,30 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
     }
 
     private void redisKeyExchangeSubscribe(String username) {
-        config.redisClient.encryptionSuite.put(username + "_diffie-hellman", new EncryptionSuite())
-        config.redisClient.encryptionSuite[username + "_diffie-hellman"].generateKeys()
-        config.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
-            Message message = Message.parseJSON(messageString)
-            if (message.sender == username) {
-                return
-            }
+        config.redisClient.encryptionSuites.put(username, new EncryptionSuite())
+        config.redisClient.encryptionSuites[username].generateKeys()
+        config.redisClient.subscribeChannel(username + DH_POSTFIX, username) { String channelName, Message message ->
             String serverPublicKey = StringMessage.fromJSON(message.content).str
-            config.redisClient.encryptionSuite[username + "_diffie-hellman"].generateCommonSecretKey(serverPublicKey)
+            config.redisClient.encryptionSuites[username].generateCommonSecretKey(serverPublicKey)
             config.redisClient.unsubscribe(channelName)
             redisEncryptionOkSubscribe(username)
         }
 
-        String clientPublicKey = config.redisClient.encryptionSuite[username + "_diffie-hellman"].serializePublicKey()
+        String clientPublicKey = config.redisClient.encryptionSuites[username].serializePublicKey()
         Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, clientPublicKey)
-        config.redisClient.publishMessage(username + "_diffie-hellman", message)
+        config.redisClient.publishMessage(username + DH_POSTFIX, 'server', message)
     }
 
     private void redisEncryptionOkSubscribe(String username) {
-        config.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
-            Message returnMessage = Message.parseJSON(messageString)
-            if (returnMessage.sender == username) {
-                return
-            }
-            String serverEncryptedMessage = StringMessage.fromJSON(returnMessage.content).str
-            String decryptedMessage = config.redisClient.encryptionSuite[username + "_diffie-hellman"].decrypt(serverEncryptedMessage)
+        config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
+            String decryptedMessage = StringMessage.fromJSON(message.content).str
+            assert decryptedMessage == 'OK!'
             config.redisClient.unsubscribe(channelName)
+            encryptionSetUpped = true
         }
 
-        String encryptedMessage = config.redisClient.encryptionSuite[username + "_diffie-hellman"].encrypt("OK!")
-        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, encryptedMessage)
-        config.redisClient.publishMessage(username + "_diffie-hellman", message)
+        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, "OK!")
+        config.redisClient.publishMessage(username, 'server', message)
     }
 
     private ActionListener createLoginButtonListener() {
@@ -101,7 +96,11 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     writeConfigToFile(config)
                     config.username = username
                     config.redisClient = new RedisClient(loginResponse.pubSubHost)
+
                     redisKeyExchangeSubscribe(config.username)
+                    while (!encryptionSetUpped) {
+                        sleep(100)
+                    }
                     new LoggedInWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, loginResponse.message)

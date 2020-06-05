@@ -12,9 +12,16 @@ import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.security.EncryptionSuite
-import pl.poznan.put.structures.*
+import pl.poznan.put.structures.AccountStatus
+import pl.poznan.put.structures.PasswordPolicy
+import pl.poznan.put.structures.StringMessage
+import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.*
 
 import javax.servlet.http.HttpServletRequest
+
+import static pl.poznan.put.GlobalConstants.getDH_POSTFIX
+import static pl.poznan.put.structures.AccountStatus.*
 
 @Slf4j
 @RestController
@@ -26,7 +33,7 @@ class AccountController {
     ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
         log.info('received login request')
         AccountStatus accountStatus = DatabaseManager.checkAccount(loginRequest)
-        if (accountStatus != AccountStatus.SUCCESS) {
+        if (accountStatus != SUCCESS) {
             LoginResponse response = null
             if (accountStatus == AccountStatus.NOT_EXISTS) {
                 response = new LoginResponse(message: "Wrong username.")
@@ -52,6 +59,7 @@ class AccountController {
         log.info("received logout request from user ${username}")
         DatabaseManager.updateUserAddress(username, null)
         DatabaseManager.setUserStatus(username, UserStatus.INACTIVE)
+        PubSubManager.redisClient.unsubscribe(username)
         return new ResponseEntity(HttpStatus.OK)
     }
 
@@ -60,19 +68,24 @@ class AccountController {
     ResponseEntity<ApiResponse> register(@RequestBody LoginRequest loginRequest) {
         log.info('received register request: ' + loginRequest.toJSON().toString())
 
+        PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
+        if (!policy.validatePassword(loginRequest.password)) {
+            return new ResponseEntity(new MessageResponse(message: PASSWORD_POLICY_NOT_MATCHED), HttpStatus.BAD_REQUEST)
+        }
+
         boolean created = DatabaseManager.createAccount(loginRequest)
         log.info('user created: ' + created)
         if (created) {
-            return new ResponseEntity(new MessageResponse(message: "user created"), HttpStatus.CREATED)
+            return new ResponseEntity(new MessageResponse(message: SUCCESS), HttpStatus.CREATED)
         } else {
-            return new ResponseEntity(new MessageResponse(message: "username already in use"), HttpStatus.CONFLICT)
+            return new ResponseEntity(new MessageResponse(message: USERNAME_USED), HttpStatus.CONFLICT)
         }
     }
 
     @GetMapping(value = "/user-list", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<ApiResponse> userList() {
-        log.info('received user list request')
+        log.debug('received user list request')
         Map<String, UserStatus> userList = DatabaseManager.getUserList()
         return new ResponseEntity(new UserListResponse(userList: userList), HttpStatus.OK)
     }
@@ -80,43 +93,42 @@ class AccountController {
     @GetMapping(value = "/password-policy", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<PasswordPolicy> passwordPolicy() {
-        log.info('received user list request')
+        log.info('received password policy')
         PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
         return new ResponseEntity(policy.toJSON().toString(), HttpStatus.OK)
     }
 
     private static void redisKeyExchangeSubscribe(String username) {
-        PubSubManager.redisClient.encryptionSuite.put(username + "_diffie-hellman", new EncryptionSuite())
-        PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].generateKeys()
-        PubSubManager.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
-            Message message = Message.parseJSON(messageString)
-            if (message.sender == 'server') {
-                return
-            }
+        PubSubManager.redisClient.encryptionSuites.put(username, new EncryptionSuite())
+        PubSubManager.redisClient.encryptionSuites[username].generateKeys()
+        PubSubManager.redisClient.subscribeChannel(username + DH_POSTFIX, "server") { String channelName, Message message ->
             String clientPublicKey = StringMessage.fromJSON(message.content).str
-            PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].generateCommonSecretKey(clientPublicKey)
+            PubSubManager.redisClient.encryptionSuites[username].generateCommonSecretKey(clientPublicKey)
             PubSubManager.redisClient.unsubscribe(channelName)
 
-            String serverPublicKey = PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].serializePublicKey()
+            String serverPublicKey = PubSubManager.redisClient.encryptionSuites[username].serializePublicKey()
             Message messageToClient = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, 'server', serverPublicKey)
-            PubSubManager.redisClient.publishMessage(username + "_diffie-hellman", messageToClient)
+            PubSubManager.redisClient.publishMessage(username + DH_POSTFIX, username, messageToClient)
             redisEncryptionOkSubscribe(username)
         }
     }
 
     private static void redisEncryptionOkSubscribe(String username) {
-        PubSubManager.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
-            Message returnMessage = Message.parseJSON(messageString)
-            if (returnMessage.sender == 'server') {
-                return
-            }
-            String userEncryptedMessage = StringMessage.fromJSON(returnMessage.content).str
-            String decryptedMessage = PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].decrypt(userEncryptedMessage)
+        PubSubManager.redisClient.subscribeChannel(username, "server") { String channelName, Message message ->
+            String decryptedMessage = StringMessage.fromJSON(message.content).str
+            assert decryptedMessage == 'OK!'
             PubSubManager.redisClient.unsubscribe(channelName)
 
-            String encryptedMessage = PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].encrypt("OK!")
-            Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, 'server', encryptedMessage)
-            PubSubManager.redisClient.publishMessage(username + "_diffie-hellman", message)
+            Message okMessage = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, 'server', "OK!")
+            PubSubManager.redisClient.publishMessage(username, okMessage)
+            redisMessageForwardSubscribe(username)
+        }
+    }
+
+    private static void redisMessageForwardSubscribe(String username) {
+        PubSubManager.redisClient.subscribeChannel(username, 'server') { String _, Message message ->
+            message.sender = 'server'
+            PubSubManager.redisClient.publishMessage(message.target, message)
         }
     }
 

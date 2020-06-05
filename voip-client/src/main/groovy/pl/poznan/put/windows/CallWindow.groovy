@@ -27,8 +27,7 @@ class CallWindow extends Window {
 
     private void redisEndCallSubscribe() {
         log.info("[${config.username}] subscribing with end call callback")
-        config.redisClient.subscribeChannel(config.username) { String channelName, String messageString ->
-            Message message = Message.parseJSON(messageString)
+        config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
             if (message.action == END_CALL && config.phoneCallClient != null) {
                 log.info("[${channelName}] received end call")
                 config.redisClient.unsubscribe(channelName)

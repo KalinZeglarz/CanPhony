@@ -13,9 +13,9 @@ import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.PhoneCallParamsFactory
-import pl.poznan.put.structures.PhoneCallRequest
-import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.PhoneCallRequest
+import pl.poznan.put.structures.api.PhoneCallResponse
 
 @Slf4j
 @RestController()
@@ -30,7 +30,7 @@ class PhoneCallController {
         Tuple2<PhoneCallResponse, PhoneCallResponse> phoneCallResponses = PhoneCallManager
                 .addPhoneCall(PhoneCallParamsFactory.createPhoneCallParams(phoneCallRequest))
 
-        Message message = MessageFactory.createMessage(MessageAction.CALL_REQUEST, phoneCallResponses.getItem2())
+        Message message = MessageFactory.createMessage(MessageAction.CALL_REQUEST, 'server', phoneCallResponses.getItem2())
         PubSubManager.redisClient.publishMessage(phoneCallRequest.targetUsername, message)
         DatabaseManager.setUserStatus(phoneCallRequest.sourceUsername, UserStatus.BUSY)
         DatabaseManager.setUserStatus(phoneCallRequest.targetUsername, UserStatus.BUSY)
@@ -41,6 +41,7 @@ class PhoneCallController {
     @ResponseBody
     ResponseEntity endCall(@RequestParam String sourceUsername, @RequestParam String targetUsername) {
         Message message = MessageFactory.createMessage(MessageAction.END_CALL)
+        message.sender = 'server'
         PubSubManager.redisClient.publishMessage(targetUsername, message)
         PhoneCallManager.removePhoneCall(sourceUsername)
         DatabaseManager.setUserStatus(sourceUsername, UserStatus.ACTIVE)
@@ -52,6 +53,7 @@ class PhoneCallController {
     @ResponseBody
     ResponseEntity rejectCall(@RequestParam String sourceUsername, @RequestParam String targetUsername) {
         Message message = MessageFactory.createMessage(MessageAction.REJECT_CALL)
+        message.sender = 'server'
         PubSubManager.redisClient.publishMessage(targetUsername, message)
         PhoneCallManager.removePhoneCall(sourceUsername)
         DatabaseManager.setUserStatus(sourceUsername, UserStatus.ACTIVE)

@@ -14,7 +14,10 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.http.ssl.SSLContextBuilder
 import org.apache.http.util.EntityUtils
 import org.json.JSONObject
-import pl.poznan.put.structures.*
+import pl.poznan.put.structures.AccountStatus
+import pl.poznan.put.structures.PasswordPolicy
+import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.*
 
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
@@ -108,10 +111,12 @@ class VoipHttpClient {
         httpClient.execute(request)
     }
 
-    boolean register(String username, String password) {
+    AccountStatus register(String username, String password) {
         log.info('registering account')
         HttpResponse response = accountPost(username, password, "register")
-        return response.getStatusLine().getStatusCode() == 201
+        String responseBody = EntityUtils.toString(response.getEntity())
+        JSONObject responseJson = new JSONObject(responseBody)
+        return AccountStatus.valueOf(responseJson.getString('message'))
     }
 
     PasswordPolicy getPasswordPolicy() {

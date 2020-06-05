@@ -4,12 +4,10 @@ import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
-import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.pubsub.RedisClient
 import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.ClientConfig
-import pl.poznan.put.structures.StringMessage
-import pl.poznan.put.structures.api.LoginResponse
+import pl.poznan.put.structures.LoginResponse
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -48,26 +46,26 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
         config.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         config.redisClient.encryptionSuites[username].generateKeys()
         config.redisClient.subscribeChannel(username + DH_POSTFIX, username) { String channelName, Message message ->
-            String serverPublicKey = StringMessage.fromJSON(message.content).str
+            String serverPublicKey = message.content
             config.redisClient.encryptionSuites[username].generateCommonSecretKey(serverPublicKey)
             config.redisClient.unsubscribe(channelName)
             redisEncryptionOkSubscribe(username)
         }
 
         String clientPublicKey = config.redisClient.encryptionSuites[username].serializePublicKey()
-        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, clientPublicKey)
+        Message message = new Message(action: MessageAction.KEY_EXCHANGE, sender: username, content: clientPublicKey)
         config.redisClient.publishMessage(username + DH_POSTFIX, 'server', message)
     }
 
     private void redisEncryptionOkSubscribe(String username) {
         config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
-            String decryptedMessage = StringMessage.fromJSON(message.content).str
+            String decryptedMessage = message.content
             assert decryptedMessage == 'OK!'
             config.redisClient.unsubscribe(channelName)
             encryptionSetUpped = true
         }
 
-        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, "OK!")
+        Message message = new Message(action: MessageAction.KEY_EXCHANGE, sender: username, content: "OK!")
         config.redisClient.publishMessage(username, 'server', message)
     }
 

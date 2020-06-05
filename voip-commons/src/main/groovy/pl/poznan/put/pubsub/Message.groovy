@@ -1,5 +1,6 @@
 package pl.poznan.put.pubsub
 
+import org.json.JSONException
 import org.json.JSONObject
 import pl.poznan.put.structures.JSONable
 
@@ -7,11 +8,15 @@ import java.time.LocalDateTime
 
 class Message implements JSONable {
 
-    LocalDateTime timeStamp = null
+    LocalDateTime timeStamp = LocalDateTime.now()
     MessageAction action = null
     String sender = null
     String target = null
-    JSONObject content = null
+    String content = null
+
+    JSONObject getContentAsJson() {
+        return new JSONObject(content)
+    }
 
     @Override
     JSONObject toJSON() {
@@ -32,11 +37,15 @@ class Message implements JSONable {
         MessageAction messageAction = MessageAction.valueOf(parsedJson.getString('action'))
         String sender = parsedJson.getString('sender').toString()
         String target = parsedJson.getString('target').toString()
-        JSONObject json = null
+        String content = null
         if (parsedJson.has('content')) {
-            json = parsedJson.getJSONObject('content')
+            try {
+                content = parsedJson.getJSONObject('content').toString()
+            } catch (JSONException ignored) {
+                content = parsedJson.getString('content')
+            }
         }
-        return new Message(timeStamp: timeStamp, action: messageAction, sender: sender, target: target, content: json)
+        return new Message(timeStamp: timeStamp, action: messageAction, sender: sender, target: target, content: content)
     }
 
 }

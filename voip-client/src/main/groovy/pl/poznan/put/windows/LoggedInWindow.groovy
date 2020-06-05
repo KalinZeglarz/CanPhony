@@ -3,10 +3,9 @@ package pl.poznan.put.windows
 import groovy.util.logging.Slf4j
 import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.pubsub.Message
-import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.structures.UserStatus
-import pl.poznan.put.structures.api.PhoneCallResponse
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -53,7 +52,8 @@ class LoggedInWindow extends Window {
                         config.redisClient.unsubscribe(username)
 
                         config.currentCallUsername = phoneCallResponse.sourceUsername
-                        config.redisClient.publishMessage(username, config.currentCallUsername, MessageFactory.createMessage(ACCEPT_CALL, username))
+                        config.redisClient.publishMessage(username, config.currentCallUsername, new Message(
+                                action: ACCEPT_CALL, sender: username))
                         config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
                         config.phoneCallClient.start()
                         userListListenerThread.interrupt()

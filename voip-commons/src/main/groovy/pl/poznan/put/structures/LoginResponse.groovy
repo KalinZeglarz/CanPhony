@@ -1,4 +1,4 @@
-package pl.poznan.put.structures.api
+package pl.poznan.put.structures
 
 import org.json.JSONObject
 
@@ -17,5 +17,12 @@ class LoginResponse extends ApiResponse {
             pubSubPort = parsedJson.getInt('pubSubPort')
         }
         return new LoginResponse(message: message, pubSubHost: pubSubHost, pubSubPort: pubSubPort)
+    }
+
+    @Override
+    JSONObject toJSON() {
+        return new JSONObject().put('message', message)
+                .put('pubSubHost', pubSubHost)
+                .put('pubSubPort', pubSubPort)
     }
 }

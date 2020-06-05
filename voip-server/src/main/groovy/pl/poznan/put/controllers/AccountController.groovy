@@ -10,13 +10,8 @@ import pl.poznan.put.managers.DatabaseManager
 import pl.poznan.put.managers.PubSubManager
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
-import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.security.EncryptionSuite
-import pl.poznan.put.structures.AccountStatus
-import pl.poznan.put.structures.PasswordPolicy
-import pl.poznan.put.structures.StringMessage
-import pl.poznan.put.structures.UserStatus
-import pl.poznan.put.structures.api.*
+import pl.poznan.put.structures.*
 
 import javax.servlet.http.HttpServletRequest
 
@@ -35,9 +30,9 @@ class AccountController {
         AccountStatus accountStatus = DatabaseManager.checkAccount(loginRequest)
         if (accountStatus != SUCCESS) {
             LoginResponse response = null
-            if (accountStatus == AccountStatus.NOT_EXISTS) {
+            if (accountStatus == NOT_EXISTS) {
                 response = new LoginResponse(message: "Wrong username.")
-            } else if (accountStatus == AccountStatus.INCORRECT_PASSWORD) {
+            } else if (accountStatus == INCORRECT_PASSWORD) {
                 response = new LoginResponse(message: "Wrong password.")
             }
             return new ResponseEntity(response, HttpStatus.CONFLICT)
@@ -102,12 +97,12 @@ class AccountController {
         PubSubManager.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         PubSubManager.redisClient.encryptionSuites[username].generateKeys()
         PubSubManager.redisClient.subscribeChannel(username + DH_POSTFIX, "server") { String channelName, Message message ->
-            String clientPublicKey = StringMessage.fromJSON(message.content).str
+            String clientPublicKey = message.content
             PubSubManager.redisClient.encryptionSuites[username].generateCommonSecretKey(clientPublicKey)
             PubSubManager.redisClient.unsubscribe(channelName)
 
             String serverPublicKey = PubSubManager.redisClient.encryptionSuites[username].serializePublicKey()
-            Message messageToClient = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, 'server', serverPublicKey)
+            Message messageToClient = new Message(action: MessageAction.KEY_EXCHANGE, sender: 'server', content: serverPublicKey)
             PubSubManager.redisClient.publishMessage(username + DH_POSTFIX, username, messageToClient)
             redisEncryptionOkSubscribe(username)
         }
@@ -115,11 +110,11 @@ class AccountController {
 
     private static void redisEncryptionOkSubscribe(String username) {
         PubSubManager.redisClient.subscribeChannel(username, "server") { String channelName, Message message ->
-            String decryptedMessage = StringMessage.fromJSON(message.content).str
+            String decryptedMessage = message.content
             assert decryptedMessage == 'OK!'
             PubSubManager.redisClient.unsubscribe(channelName)
 
-            Message okMessage = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, 'server', "OK!")
+            Message okMessage = new Message(action: MessageAction.KEY_EXCHANGE, sender: 'server', content: "OK!")
             PubSubManager.redisClient.publishMessage(username, okMessage)
             redisMessageForwardSubscribe(username)
         }

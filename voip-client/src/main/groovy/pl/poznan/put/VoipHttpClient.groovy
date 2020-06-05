@@ -14,10 +14,7 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.http.ssl.SSLContextBuilder
 import org.apache.http.util.EntityUtils
 import org.json.JSONObject
-import pl.poznan.put.structures.AccountStatus
-import pl.poznan.put.structures.PasswordPolicy
-import pl.poznan.put.structures.UserStatus
-import pl.poznan.put.structures.api.*
+import pl.poznan.put.structures.*
 
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext

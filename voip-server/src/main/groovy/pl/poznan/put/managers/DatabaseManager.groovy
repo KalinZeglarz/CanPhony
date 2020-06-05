@@ -5,9 +5,9 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
 import pl.poznan.put.PasswordHash
 import pl.poznan.put.structures.AccountStatus
+import pl.poznan.put.structures.LoginRequest
 import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.structures.UserStatus
-import pl.poznan.put.structures.api.LoginRequest
 
 import java.sql.*
 

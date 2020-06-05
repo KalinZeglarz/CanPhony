@@ -1,7 +1,6 @@
-package pl.poznan.put.structures.api
+package pl.poznan.put.structures
 
 import org.json.JSONObject
-import pl.poznan.put.structures.UserStatus
 
 class UserListResponse extends ApiResponse {
     Map<String, UserStatus> userList
@@ -12,4 +11,8 @@ class UserListResponse extends ApiResponse {
         return new UserListResponse(userList: userList)
     }
 
+    @Override
+    JSONObject toJSON() {
+        return new JSONObject().put('userList', new JSONObject(userList))
+    }
 }

@@ -1,9 +1,8 @@
-package pl.poznan.put.structures.api
+package pl.poznan.put.structures
 
 import org.json.JSONObject
-import pl.poznan.put.structures.JSONable
 
-class PhoneCallResponse extends ApiResponse implements JSONable {
+class PhoneCallResponse extends ApiResponse {
     int forwarderPort
     String sourceUsername
     String targetUsername

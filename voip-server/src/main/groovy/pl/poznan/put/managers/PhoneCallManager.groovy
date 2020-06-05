@@ -5,7 +5,7 @@ import groovyjarjarantlr4.v4.runtime.misc.Tuple2
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.streaming.UdpAudioForwarder
 import pl.poznan.put.structures.PhoneCallParams
-import pl.poznan.put.structures.api.PhoneCallResponse
+import pl.poznan.put.structures.PhoneCallResponse
 
 @Slf4j
 class PhoneCallManager {

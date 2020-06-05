@@ -1,8 +1,6 @@
-package pl.poznan.put.structures.api
+package pl.poznan.put.structures
 
 import org.json.JSONObject
-import pl.poznan.put.structures.JSONable
-import pl.poznan.put.structures.api.ApiRequest
 
 class PhoneCallRequest extends ApiRequest implements JSONable {
     String sourceUsername

@@ -37,6 +37,9 @@ class AccountController {
 
         LoginResponse response = new LoginResponse(subPubHost: SubPubManager.getRedisHost(),
                 subPubPort: GlobalConstants.REDIS_PORT)
+
+        // TODO: Subscribe here for key exchange
+
         return new ResponseEntity(response, HttpStatus.CREATED)
     }
 

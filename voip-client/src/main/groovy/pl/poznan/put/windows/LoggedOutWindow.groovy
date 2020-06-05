@@ -62,6 +62,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
 
                     config.username = username
                     config.redisClient = new RedisClient(loginResponse.subPubHost)
+                    // TODO: Add diffie-hellman key exchange somwhere here
                     new LoggedInWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, loginResponse.message)

@@ -101,12 +101,27 @@ class AccountController {
             String serverPublicKey = PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].serializePublicKey()
             Message messageToClient = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, 'server', serverPublicKey)
             PubSubManager.redisClient.publishMessage(username + "_diffie-hellman", messageToClient)
+            PubSubManager.redisClient.unsubscribe(channelName)
             redisEncryptionOkSubscribe(username)
         }
     }
 
     private static void redisEncryptionOkSubscribe(String username) {
-        // TODO: Send OK hyr
+        String encryptedMessage = PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].encrypt("OK!")
+        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, encryptedMessage)
+        PubSubManager.redisClient.publishMessage(username + "_diffie-hellman", message)
+        println(encryptedMessage)
+
+        PubSubManager.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
+            Message returnMessage = Message.parseJSON(messageString)
+            if (returnMessage.sender == username) {
+                return
+            }
+            String userEncryptedMessage = StringMessage.fromJSON(returnMessage.content).str
+            String decryptedMessage = PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].decrypt(userEncryptedMessage)
+            println(decryptedMessage)
+            PubSubManager.redisClient.unsubscribe(channelName)
+        }
     }
 
 }

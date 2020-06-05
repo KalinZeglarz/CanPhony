@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.managers.DatabaseManager
 import pl.poznan.put.managers.SubPubManager
+import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.*
 
 import javax.servlet.http.HttpServletRequest
@@ -39,6 +40,9 @@ class AccountController {
                 subPubPort: GlobalConstants.REDIS_PORT)
 
         // TODO: Subscribe here for key exchange
+        SubPubManager.redisClient.encryptionSuite.put(loginRequest.username + "_diffie-hellman", new EncryptionSuite())
+        SubPubManager.redisClient.encryptionSuite[loginRequest.username + "_diffie-hellman"].generateKeys()
+
 
         return new ResponseEntity(response, HttpStatus.CREATED)
     }

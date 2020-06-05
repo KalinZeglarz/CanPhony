@@ -2,6 +2,7 @@ package pl.poznan.put.pubsub
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.GlobalConstants
+import pl.poznan.put.security.EncryptionSuite
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPubSub
 import redis.clients.jedis.exceptions.JedisConnectionException
@@ -13,6 +14,7 @@ class RedisClient {
     protected final Jedis publisher
     protected final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
     protected final Map<String, Thread> subscriberThreads = new HashMap<>()
+    final Map<String, EncryptionSuite> encryptionSuite = new HashMap<>()
 
     RedisClient(String redisHost) {
         this.redisHost = redisHost

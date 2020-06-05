@@ -3,6 +3,7 @@ package pl.poznan.put.windows
 import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.pubsub.RedisClient
+import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.LoginResponse
 import pl.poznan.put.windows.Window
@@ -59,10 +60,14 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     config.serverPort = serverPortField.getText()
                     config.username = usernameField.getText()
                     writeConfigToFile(config)
-
                     config.username = username
                     config.redisClient = new RedisClient(loginResponse.subPubHost)
                     // TODO: Add diffie-hellman key exchange somwhere here
+                    config.redisClient.encryptionSuite.put(username, new EncryptionSuite())
+                    config.redisClient.encryptionSuite[username].generateKeys()
+                    config.redisClient.subscribeChannel(username + "_diffie-hellman"){
+
+                    }
                     new LoggedInWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, loginResponse.message)

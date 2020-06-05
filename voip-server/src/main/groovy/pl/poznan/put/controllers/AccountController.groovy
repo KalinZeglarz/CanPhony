@@ -7,7 +7,10 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.managers.DatabaseManager
-import pl.poznan.put.managers.SubPubManager
+import pl.poznan.put.managers.PubSubManager
+import pl.poznan.put.pubsub.Message
+import pl.poznan.put.pubsub.MessageAction
+import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.*
 
@@ -36,14 +39,10 @@ class AccountController {
         DatabaseManager.updateUserAddress(loginRequest.username, request.remoteAddr)
         DatabaseManager.setUserStatus(loginRequest.username, UserStatus.ACTIVE)
 
-        LoginResponse response = new LoginResponse(subPubHost: SubPubManager.getRedisHost(),
-                subPubPort: GlobalConstants.REDIS_PORT)
+        LoginResponse response = new LoginResponse(pubSubHost: PubSubManager.getRedisHost(),
+                pubSubPort: GlobalConstants.REDIS_PORT)
 
-        // TODO: Subscribe here for key exchange
-        SubPubManager.redisClient.encryptionSuite.put(loginRequest.username + "_diffie-hellman", new EncryptionSuite())
-        SubPubManager.redisClient.encryptionSuite[loginRequest.username + "_diffie-hellman"].generateKeys()
-
-
+        redisKeyExchangeSubscribe(loginRequest.username)
         return new ResponseEntity(response, HttpStatus.CREATED)
     }
 
@@ -84,6 +83,30 @@ class AccountController {
         log.info('received user list request')
         PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
         return new ResponseEntity(policy.toJSON().toString(), HttpStatus.OK)
+    }
+
+    private static void redisKeyExchangeSubscribe(String username) {
+        PubSubManager.redisClient.encryptionSuite.put(username + "_diffie-hellman", new EncryptionSuite())
+        PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].generateKeys()
+        PubSubManager.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
+            Message message = Message.parseJSON(messageString)
+            if (message.sender == 'server') {
+                return
+            }
+            String clientPublicKey = StringMessage.fromJSON(message.content).str
+            PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].generateCommonSecretKey(clientPublicKey)
+            PubSubManager.redisClient.unsubscribe(channelName)
+            println('public key: ' + clientPublicKey)
+
+            String serverPublicKey = PubSubManager.redisClient.encryptionSuite[username + "_diffie-hellman"].serializePublicKey()
+            Message messageToClient = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, 'server', serverPublicKey)
+            PubSubManager.redisClient.publishMessage(username + "_diffie-hellman", messageToClient)
+            redisEncryptionOkSubscribe(username)
+        }
+    }
+
+    private static void redisEncryptionOkSubscribe(String username) {
+        // TODO: Send OK hyr
     }
 
 }

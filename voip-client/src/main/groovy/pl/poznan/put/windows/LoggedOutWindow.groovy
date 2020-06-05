@@ -2,10 +2,14 @@ package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
 import pl.poznan.put.VoipHttpClient
+import pl.poznan.put.pubsub.Message
+import pl.poznan.put.pubsub.MessageAction
+import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.pubsub.RedisClient
 import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.LoginResponse
+import pl.poznan.put.structures.StringMessage
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -37,6 +41,29 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
         }
     }
 
+    private void redisKeyExchangeSubscribe(String username) {
+        config.redisClient.encryptionSuite.put(username + "_diffie-hellman", new EncryptionSuite())
+        config.redisClient.encryptionSuite[username + "_diffie-hellman"].generateKeys()
+        config.redisClient.subscribeChannel(username + "_diffie-hellman") { String channelName, String messageString ->
+            Message message = Message.parseJSON(messageString)
+            if (message.sender == username) {
+                return
+            }
+            String serverPublicKey = StringMessage.fromJSON(message.content).str
+            config.redisClient.encryptionSuite[username + "_diffie-hellman"].generateCommonSecretKey(serverPublicKey)
+            config.redisClient.unsubscribe(channelName)
+            redisEncryptionOkSubscribe(username)
+        }
+
+        String clientPublicKey = config.redisClient.encryptionSuite[username + "_diffie-hellman"].serializePublicKey()
+        Message message = MessageFactory.createMessage(MessageAction.KEY_EXCHANGE, username, clientPublicKey)
+        config.redisClient.publishMessage(username + "_diffie-hellman", message)
+    }
+
+    private static void redisEncryptionOkSubscribe(String username) {
+        // TODO: Send OK hyr
+    }
+
     private ActionListener createLoginButtonListener() {
         return new ActionListener() {
             @Override
@@ -61,13 +88,8 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     config.username = usernameField.getText()
                     writeConfigToFile(config)
                     config.username = username
-                    config.redisClient = new RedisClient(loginResponse.subPubHost)
-                    // TODO: Add diffie-hellman key exchange somwhere here
-                    config.redisClient.encryptionSuite.put(username, new EncryptionSuite())
-                    config.redisClient.encryptionSuite[username].generateKeys()
-                    config.redisClient.subscribeChannel(username + "_diffie-hellman"){
-
-                    }
+                    config.redisClient = new RedisClient(loginResponse.pubSubHost)
+                    redisKeyExchangeSubscribe(config.username)
                     new LoggedInWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, loginResponse.message)

@@ -35,7 +35,7 @@ class PhoneCallManager {
                 forwarderPort: forwarderPort2, audioQuality: params.audioQuality, bufferSize: params.bufferSize)
         phoneCallForwarders.put(params.sessionId, new Tuple2(audioForwarder1, audioForwarder2))
 
-        SubPubManager.redisClient.subscribeChannel(params.sessionId.toString()) { String channelName,
+        PubSubManager.redisClient.subscribeChannel(params.sessionId.toString()) { String channelName,
                                                                                   String messageString ->
             if (channelName != params.sessionId.toString()) {
                 return
@@ -47,7 +47,7 @@ class PhoneCallManager {
                 audioForwarder2.stop()
                 phoneCallForwarders.remove(channelName)
 
-                SubPubManager.redisClient.unsubscribe(channelName)
+                PubSubManager.redisClient.unsubscribe(channelName)
             }
         }
         audioForwarder1.start()

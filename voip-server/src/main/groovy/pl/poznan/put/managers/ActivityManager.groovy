@@ -8,20 +8,20 @@ import redis.clients.jedis.exceptions.JedisException
 @Slf4j
 class ActivityManager {
 
-    private static Map<String, Boolean> activeUsers = new HashMap<>()
+    private static Map<String, Integer> activeUsers = new HashMap<>()
     private static Thread checkerThread
 
     static void start() {
         checkerThread = new Thread({
             while (!Thread.currentThread().isInterrupted()) {
                 for (String username in DatabaseManager.getUserList().keySet()) {
-                    if (!activeUsers.containsKey(username) || !activeUsers.get(username)) {
+                    if (!activeUsers.containsKey(username) || activeUsers.get(username) >= 3) {
                         removeUser(username)
                         continue
                     }
                     userBeacon(username)
                 }
-                sleep(15000)
+                sleep(5000)
             }
         })
         checkerThread.start()
@@ -30,7 +30,7 @@ class ActivityManager {
     }
 
     static void addUser(String username) {
-        activeUsers.put(username, true)
+        activeUsers.put(username, 0)
     }
 
     static void removeUser(String username) {
@@ -49,10 +49,12 @@ class ActivityManager {
                     okReceived = message.content == "OK!"
                 }
                 PubSubManager.redisClient.publishMessage(username + "_beacon", "server", username, "beacon")
-                sleep(15000)
+                sleep(5000)
                 PubSubManager.redisClient.unsubscribe(username + "_beacon")
                 if (!okReceived) {
-                    activeUsers.put(username, false)
+                    activeUsers.put(username, activeUsers.get(username) + 1)
+                } else {
+                    activeUsers.put(username, 0)
                 }
             } catch (JedisException ignored) {
             }

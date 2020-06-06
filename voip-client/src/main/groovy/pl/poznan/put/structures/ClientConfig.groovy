@@ -25,18 +25,18 @@ class ClientConfig implements JSONable {
     }
 
     static ClientConfig parseJSON(JSONObject object) {
-        String serverAddress = object.getString('serverAddress')
-        String serverPort = object.getString('serverPort')
-        String username = object.getString('username')
+        String serverAddress = object.getString("serverAddress")
+        String serverPort = object.getString("serverPort")
+        String username = object.getString("username")
         return new ClientConfig(serverAddress: serverAddress, serverPort: serverPort, username: username)
     }
 
     @Override
     JSONObject toJSON() {
         return new JSONObject()
-                .put('serverAddress', serverAddress)
-                .put('serverPort', serverPort)
-                .put('username', username)
+                .put("serverAddress", serverAddress)
+                .put("serverPort", serverPort)
+                .put("username", username)
     }
 
 }

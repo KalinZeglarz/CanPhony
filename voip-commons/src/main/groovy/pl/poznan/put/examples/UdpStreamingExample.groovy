@@ -38,13 +38,13 @@ class UdpStreamingExample {
         )
 
         audioReceiver.start()
-        log.info('started audio receiver')
+        log.info("started audio receiver")
         speakers.start()
-        log.info('started speakers')
+        log.info("started speakers")
         audioStreamer.start()
-        log.info('started audio streamer')
+        log.info("started audio streamer")
         microphone.start()
-        log.info('started microphone')
+        log.info("started microphone")
 
         log.info("enter anything to stop ")
         System.in.newReader().readLine()

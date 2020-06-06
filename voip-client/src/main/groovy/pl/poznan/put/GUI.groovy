@@ -25,7 +25,7 @@ class GUI extends JFrame {
     }
 
     static ClientConfig readServerAddress() {
-        File configFile = new File('clientConfig.json')
+        File configFile = new File("clientConfig.json")
         if (!configFile.exists()) {
             return new ClientConfig()
         }
@@ -42,7 +42,7 @@ class GUI extends JFrame {
                 System.exit(1)
             }
             GUI gui = new GUI()
-            gui.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource('/gui/icon.png')))
+            gui.setIconImage(Toolkit.getDefaultToolkit().getImage(getClass().getResource("/gui/icon.png")))
             gui.setSize(320, 200)
             gui.setLocationRelativeTo()
             log.info("starting gui client")
@@ -55,7 +55,7 @@ class GUI extends JFrame {
                 @Override
                 void windowClosing(WindowEvent e) {
                     if (gui.config.username != null) {
-                        log.info('window closing')
+                        log.info("window closing")
                         gui.config.httpClient.logout(gui.config.username)
                     }
                 }

@@ -47,7 +47,7 @@ class LoggedInWindow extends Window {
                     boolean accepted = !JOptionPane.showOptionDialog(frame,
                             "${phoneCallResponse.sourceUsername} wants to start a call with you.", "Call Request",
                             JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                            ['Accept', 'Reject'] as String[], 'Accept')
+                            ["Accept", "Reject"] as String[], "Accept")
                     if (accepted) {
                         config.redisClient.unsubscribe(username)
 
@@ -68,7 +68,7 @@ class LoggedInWindow extends Window {
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
         log.info("[server] subscribing with start call callback")
-        config.redisClient.unsubscribe('server')
+        config.redisClient.unsubscribe("server")
         config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
@@ -110,6 +110,7 @@ class LoggedInWindow extends Window {
                 log.info("clicked log out button")
                 stopUserListListener = true
                 config.httpClient.logout(config.username)
+                config.redisClient.unsubscribe(config.username + "_beacon")
                 config.username = null
                 new LoggedOutWindow(config).create(frame)
             }
@@ -126,7 +127,7 @@ class LoggedInWindow extends Window {
                 }
                 sleep(USER_LIST_REQUEST_PERIOD)
             }
-            log.info('stopped user list listener thread')
+            log.info("stopped user list listener thread")
         })
         userListListenerThread.start()
     }

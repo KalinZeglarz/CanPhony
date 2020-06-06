@@ -6,6 +6,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import pl.poznan.put.GlobalConstants
+import pl.poznan.put.managers.ActivityManager
 import pl.poznan.put.managers.DatabaseManager
 import pl.poznan.put.managers.PubSubManager
 import pl.poznan.put.pubsub.Message
@@ -26,7 +27,7 @@ class AccountController {
     @PostMapping(value = "/login", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
-        log.info('received login request')
+        log.info("received login request")
         AccountStatus accountStatus = DatabaseManager.checkAccount(loginRequest)
         if (accountStatus != SUCCESS) {
             LoginResponse response = null
@@ -35,6 +36,9 @@ class AccountController {
             } else if (accountStatus == INCORRECT_PASSWORD) {
                 response = new LoginResponse(message: "Wrong password.")
             }
+            return new ResponseEntity(response, HttpStatus.CONFLICT)
+        } else if (DatabaseManager.getUserStatus(loginRequest.username) != UserStatus.INACTIVE) {
+            LoginResponse response = new LoginResponse(message: "User is logged in another app.")
             return new ResponseEntity(response, HttpStatus.CONFLICT)
         }
 
@@ -53,15 +57,14 @@ class AccountController {
     ResponseEntity logout(@RequestParam String username) {
         log.info("received logout request from user ${username}")
         DatabaseManager.updateUserAddress(username, null)
-        DatabaseManager.setUserStatus(username, UserStatus.INACTIVE)
-        PubSubManager.redisClient.unsubscribe(username)
+        ActivityManager.removeUser(username)
         return new ResponseEntity(HttpStatus.OK)
     }
 
     @PostMapping(value = "/register", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<ApiResponse> register(@RequestBody LoginRequest loginRequest) {
-        log.info('received register request: ' + loginRequest.toJSON().toString())
+        log.info("received register request: " + loginRequest.toJSON().toString())
 
         PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
         if (!policy.validatePassword(loginRequest.password)) {
@@ -69,7 +72,7 @@ class AccountController {
         }
 
         boolean created = DatabaseManager.createAccount(loginRequest)
-        log.info('user created: ' + created)
+        log.info("user created: " + created)
         if (created) {
             return new ResponseEntity(new MessageResponse(message: SUCCESS), HttpStatus.CREATED)
         } else {
@@ -80,7 +83,7 @@ class AccountController {
     @GetMapping(value = "/user-list", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<ApiResponse> userList() {
-        log.debug('received user list request')
+        log.debug("received user list request")
         Map<String, UserStatus> userList = DatabaseManager.getUserList()
         return new ResponseEntity(new UserListResponse(userList: userList), HttpStatus.OK)
     }
@@ -88,7 +91,7 @@ class AccountController {
     @GetMapping(value = "/password-policy", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<PasswordPolicy> passwordPolicy() {
-        log.info('received password policy')
+        log.info("received password policy")
         PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
         return new ResponseEntity(policy.toJSON().toString(), HttpStatus.OK)
     }
@@ -102,7 +105,7 @@ class AccountController {
             PubSubManager.redisClient.unsubscribe(channelName)
 
             String serverPublicKey = PubSubManager.redisClient.encryptionSuites[username].serializePublicKey()
-            Message messageToClient = new Message(action: MessageAction.KEY_EXCHANGE, sender: 'server', content: serverPublicKey)
+            Message messageToClient = new Message(action: MessageAction.KEY_EXCHANGE, sender: "server", content: serverPublicKey)
             PubSubManager.redisClient.publishMessage(username + DH_POSTFIX, username, messageToClient)
             redisEncryptionOkSubscribe(username)
         }
@@ -111,18 +114,19 @@ class AccountController {
     private static void redisEncryptionOkSubscribe(String username) {
         PubSubManager.redisClient.subscribeChannel(username, "server") { String channelName, Message message ->
             String decryptedMessage = message.content
-            assert decryptedMessage == 'OK!'
+            assert decryptedMessage == "OK!"
             PubSubManager.redisClient.unsubscribe(channelName)
 
-            Message okMessage = new Message(action: MessageAction.KEY_EXCHANGE, sender: 'server', content: "OK!")
+            Message okMessage = new Message(action: MessageAction.KEY_EXCHANGE, sender: "server", content: "OK!")
             PubSubManager.redisClient.publishMessage(username, okMessage)
+            ActivityManager.addUser(username)
             redisMessageForwardSubscribe(username)
         }
     }
 
     private static void redisMessageForwardSubscribe(String username) {
-        PubSubManager.redisClient.subscribeChannel(username, 'server') { String _, Message message ->
-            message.sender = 'server'
+        PubSubManager.redisClient.subscribeChannel(username, "server") { String _, Message message ->
+            message.sender = "server"
             PubSubManager.redisClient.publishMessage(message.target, message)
         }
     }

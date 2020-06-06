@@ -7,6 +7,6 @@ class MessageResponse extends ApiResponse {
 
     @Override
     JSONObject toJSON() {
-        return new JSONObject().put('message', message)
+        return new JSONObject().put("message", message)
     }
 }

@@ -31,7 +31,7 @@ class PhoneCallController {
         Tuple2<PhoneCallResponse, PhoneCallResponse> phoneCallResponses = PhoneCallManager
                 .addPhoneCall(PhoneCallParamsFactory.createPhoneCallParams(phoneCallRequest))
 
-        Message message = new Message(action: CALL_REQUEST, sender: 'server', content: phoneCallResponses.getItem2())
+        Message message = new Message(action: CALL_REQUEST, sender: "server", content: phoneCallResponses.getItem2())
         PubSubManager.redisClient.publishMessage(phoneCallRequest.targetUsername, message)
         DatabaseManager.setUserStatus(phoneCallRequest.sourceUsername, UserStatus.BUSY)
         DatabaseManager.setUserStatus(phoneCallRequest.targetUsername, UserStatus.BUSY)
@@ -41,7 +41,7 @@ class PhoneCallController {
     @DeleteMapping(value = "/end-call")
     @ResponseBody
     ResponseEntity endCall(@RequestParam String sourceUsername, @RequestParam String targetUsername) {
-        Message message = new Message(action: MessageAction.END_CALL, sender: 'server')
+        Message message = new Message(action: MessageAction.END_CALL, sender: "server")
         PubSubManager.redisClient.publishMessage(targetUsername, message)
         PhoneCallManager.removePhoneCall(sourceUsername)
         DatabaseManager.setUserStatus(sourceUsername, UserStatus.ACTIVE)
@@ -52,7 +52,7 @@ class PhoneCallController {
     @DeleteMapping(value = "/reject-call")
     @ResponseBody
     ResponseEntity rejectCall(@RequestParam String sourceUsername, @RequestParam String targetUsername) {
-        Message message = new Message(action: MessageAction.REJECT_CALL, sender: 'server')
+        Message message = new Message(action: MessageAction.REJECT_CALL, sender: "server")
         PubSubManager.redisClient.publishMessage(targetUsername, message)
         PhoneCallManager.removePhoneCall(sourceUsername)
         DatabaseManager.setUserStatus(sourceUsername, UserStatus.ACTIVE)

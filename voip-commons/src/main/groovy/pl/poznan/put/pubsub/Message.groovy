@@ -9,7 +9,7 @@ import java.time.LocalDateTime
 class Message implements JSONable {
 
     LocalDateTime timeStamp = LocalDateTime.now()
-    MessageAction action = null
+    MessageAction action = MessageAction.NONE
     String sender = null
     String target = null
     String content = null
@@ -21,28 +21,28 @@ class Message implements JSONable {
     @Override
     JSONObject toJSON() {
         JSONObject json = new JSONObject()
-        json.put('timestamp', timeStamp)
-        json.put('action', action)
-        json.put('sender', sender)
-        json.put('target', target)
+        json.put("timestamp", timeStamp)
+        json.put("action", action)
+        json.put("sender", sender)
+        json.put("target", target)
         if (content != null) {
-            json.put('content', content)
+            json.put("content", content)
         }
         return json
     }
 
     static Message parseJSON(final String text) {
         JSONObject parsedJson = new JSONObject(text)
-        LocalDateTime timeStamp = LocalDateTime.parse(parsedJson.getString('timestamp'))
-        MessageAction messageAction = MessageAction.valueOf(parsedJson.getString('action'))
-        String sender = parsedJson.getString('sender').toString()
-        String target = parsedJson.getString('target').toString()
+        LocalDateTime timeStamp = LocalDateTime.parse(parsedJson.getString("timestamp"))
+        MessageAction messageAction = MessageAction.valueOf(parsedJson.getString("action"))
+        String sender = parsedJson.getString("sender").toString()
+        String target = parsedJson.getString("target").toString()
         String content = null
-        if (parsedJson.has('content')) {
+        if (parsedJson.has("content")) {
             try {
-                content = parsedJson.getJSONObject('content').toString()
+                content = parsedJson.getJSONObject("content").toString()
             } catch (JSONException ignored) {
-                content = parsedJson.getString('content')
+                content = parsedJson.getString("content")
             }
         }
         return new Message(timeStamp: timeStamp, action: messageAction, sender: sender, target: target, content: content)

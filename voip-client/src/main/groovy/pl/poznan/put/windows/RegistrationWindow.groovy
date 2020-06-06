@@ -29,7 +29,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info('clicked back button')
+                log.info("clicked back button")
                 config.serverAddress = serverAddressField.getText()
                 config.serverPort = serverPortField.getText()
                 writeConfigToFile(config)
@@ -43,7 +43,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         mapPanel.setLayout(new GridLayout(0, 2))
         for (Map.Entry<Object, Object> entry in map) {
             mapPanel.add(new JLabel(entry.getKey().toString()))
-            mapPanel.add(new JLabel(' : ' + entry.getValue().toString()))
+            mapPanel.add(new JLabel(" : " + entry.getValue().toString()))
         }
         return mapPanel
     }
@@ -52,7 +52,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info('clicked register button')
+                log.info("clicked register button")
 
                 try {
                     config.httpClient = new VoipHttpClient(serverAddressField.getText(), serverPortField.getText())

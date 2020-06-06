@@ -46,13 +46,18 @@ class PhoneCallManager {
         return new Tuple2<>(response1, response2)
     }
 
-    static void removePhoneCall(String userName) {
-        int sessionsId = userSessionIds.get(userName)
-        phoneCallForwarders.get(sessionsId).item1.stop()
-        phoneCallForwarders.get(sessionsId).item2.stop()
-        Tuple2<String, String> userNames = sessionIdUsers.get(sessionsId)
-        sessionIdUsers.remove(userNames.item1)
-        sessionIdUsers.remove(userNames.item2)
+    static void removePhoneCall(String username) {
+        if (!userSessionIds.containsKey(username)) {
+            return
+        }
+        int sessionsId = userSessionIds.get(username)
+        if (phoneCallForwarders.containsKey(sessionsId)) {
+            phoneCallForwarders.get(sessionsId).item1.stop()
+            phoneCallForwarders.get(sessionsId).item2.stop()
+        }
+        Tuple2<String, String> usernames = sessionIdUsers.get(sessionsId)
+        sessionIdUsers.remove(usernames.item1)
+        sessionIdUsers.remove(usernames.item2)
         phoneCallForwarders.remove(sessionsId)
     }
 

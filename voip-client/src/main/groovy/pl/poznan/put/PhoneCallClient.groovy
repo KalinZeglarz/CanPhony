@@ -37,21 +37,21 @@ class PhoneCallClient {
     }
 
     void start() {
-        log.info('starting phone call client')
+        log.info("starting phone call client")
         audioReceiver.start()
         speakers.start()
         audioStreamer.start()
         microphone.start()
-        log.info('started phone call client')
+        log.info("started phone call client")
     }
 
     void stop() {
-        log.info('stopping phone call client')
+        log.info("stopping phone call client")
         audioReceiver.stop()
         speakers.stop()
         audioStreamer.stop()
         microphone.stop()
-        log.info('stopped phone call client')
+        log.info("stopped phone call client")
     }
 
 }

@@ -47,13 +47,13 @@ class UdpAudioReceiver {
             try {
                 socket.close()
             } catch (SocketTimeoutException ignored) {
-                log.info('interrupted read while closing socket')
+                log.info("interrupted read while closing socket")
             }
         }
         if (receiverThread != null) {
             receiverThread.interrupt()
         }
-        log.info('stopped receiver')
+        log.info("stopped receiver")
     }
 
 }

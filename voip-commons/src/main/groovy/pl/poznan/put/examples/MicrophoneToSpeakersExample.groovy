@@ -3,7 +3,6 @@ package pl.poznan.put.examples
 import groovy.transform.PackageScope
 import groovy.util.logging.Slf4j
 import pl.poznan.put.audio.AudioBuffer
-
 import pl.poznan.put.audio.Microphone
 import pl.poznan.put.audio.Speakers
 
@@ -17,7 +16,7 @@ class MicrophoneToSpeakersExample {
         final Microphone microphone = new Microphone(audioBuffer)
 
         if(!speakers.start() || !microphone.start()){
-            log.error('microphone or speaker inaccessible')
+            log.error("microphone or speaker inaccessible")
             System.exit(0)
         }
 

@@ -24,11 +24,11 @@ class EncryptionSuiteExample {
         suite1.generateCommonSecretKey(publicKey2)
         suite2.generateCommonSecretKey(publicKey1)
 
-        String message = 'Yo man, how r ya'
-        log.info('original message: ' + message)
+        String message = "Yo man, how r ya"
+        log.info("original message: " + message)
         message = suite1.encrypt(message)
-        log.info('encrypted message: ' + message)
+        log.info("encrypted message: " + message)
         message = suite2.decrypt(message)
-        log.info('decrypted message: ' + message)
+        log.info("decrypted message: " + message)
     }
 }

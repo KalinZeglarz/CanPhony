@@ -109,11 +109,11 @@ class VoipHttpClient {
     }
 
     AccountStatus register(String username, String password) {
-        log.info('registering account')
+        log.info("registering account")
         HttpResponse response = accountPost(username, password, "register")
         String responseBody = EntityUtils.toString(response.getEntity())
         JSONObject responseJson = new JSONObject(responseBody)
-        return AccountStatus.valueOf(responseJson.getString('message'))
+        return AccountStatus.valueOf(responseJson.getString("message"))
     }
 
     PasswordPolicy getPasswordPolicy() {

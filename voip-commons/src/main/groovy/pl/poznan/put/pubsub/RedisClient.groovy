@@ -33,7 +33,65 @@ class RedisClient {
         if (channels.containsKey(channelName)) {
             unsubscribe(channelName)
         }
-        JedisPubSub channel = new JedisPubSub() {
+        JedisPubSub channel = createPubSub(currentSubscriber, onMessage)
+
+        Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
+        Thread t = new Thread({
+            try {
+                subscriber.subscribe(channel, channelName)
+            } catch (JedisConnectionException e) {
+                log.info("[${channelName}] error occurred: ${e.getMessage()}")
+            }
+        })
+        subscriberThreads.put(channelName, t)
+        t.start()
+        t.setName(t.getName().replaceAll("Thread", "pubsub"))
+        sleep(500) /* needed for thread initialization */
+        channels.put(channelName, new Tuple2(subscriber, channel))
+        log.info("[${channelName}] finished subscription (thread name: ${t.getName()})")
+        log.info("subscribed channels: ${channels.keySet()}")
+    }
+
+    boolean unsubscribe(String channelName) {
+        log.info("[${channelName}] unsubscribing")
+        if (channels.containsKey(channelName)) {
+            channels[channelName].v2.unsubscribe(channelName)
+            channels.remove(channelName)
+            subscriberThreads.get(channelName).interrupt()
+            log.info("[${channelName}] finished unsubscription")
+            log.info("subscribed channels: ${channels.keySet()}")
+            return true
+        }
+        log.info("[${channelName}] unsubscription failure")
+        log.info("subscribed channels: ${channels.keySet()}")
+        return false
+    }
+
+    void publishMessage(String target, Message message) {
+        publishMessage(target, target, message)
+    }
+
+    void publishMessage(String channelName, String sender, String target, String content) {
+        Message message = new Message(sender: sender, target: target, content: content)
+        publishMessageFinish(channelName, message.toJSON().toString())
+    }
+
+    void publishMessage(String channelName, String target, Message message) {
+        message.target = target
+        publishMessageFinish(channelName, message.toJSON().toString())
+    }
+
+    private void publishMessageFinish(String channelName, String message) {
+        log.info("[${channelName}] publishing message: ${message}")
+        if (encryptionSuites[channelName] != null) {
+            message = encryptionSuites[channelName].encrypt(message)
+            log.info("[${channelName}] sending encrypted message: ${message}")
+        }
+        publisher.publish(channelName, message)
+    }
+
+    private JedisPubSub createPubSub(String currentSubscriber, Closure onMessage) {
+        return new JedisPubSub() {
             @Override
             void onMessage(String channel, String messageString) {
                 if (encryptionSuites[channel] != null) {
@@ -64,55 +122,6 @@ class RedisClient {
             void onUnsubscribe(String channel, int subscribedChannels) {
             }
         }
-
-        Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
-        Thread t = new Thread({
-            try {
-                subscriber.subscribe(channel, channelName)
-            } catch (JedisConnectionException e) {
-                log.info("[${channelName}] error occurred: ${e.getMessage()}")
-            }
-        })
-        subscriberThreads.put(channelName, t)
-        t.start()
-        t.setName(t.getName().replaceAll('Thread', 'pubsub'))
-        sleep(500) /* needed for thread initialization */
-        channels.put(channelName, new Tuple2(subscriber, channel))
-        log.info("[${channelName}] finished subscription (thread name: ${t.getName()})")
-        log.info("subscribed channels: ${channels.keySet()}")
-    }
-
-    boolean unsubscribe(String channelName) {
-        log.info("[${channelName}] unsubscribing")
-        if (channels.containsKey(channelName)) {
-            channels[channelName].v2.unsubscribe(channelName)
-            channels.remove(channelName)
-            subscriberThreads.get(channelName).interrupt()
-            log.info("[${channelName}] finished unsubscription")
-            log.info("subscribed channels: ${channels.keySet()}")
-            return true
-        }
-        log.info("[${channelName}] unsubscription failure")
-        log.info("subscribed channels: ${channels.keySet()}")
-        return false
-    }
-
-    void publishMessage(String target, Message message) {
-        publishMessage(target, target, message)
-    }
-
-    void publishMessage(String channelName, String target, Message message) {
-        message.target = target
-        publishMessageFinish(channelName, message.toJSON().toString())
-    }
-
-    private void publishMessageFinish(String channelName, String message) {
-        log.info("[${channelName}] publishing message: ${message}")
-        if (encryptionSuites[channelName] != null) {
-            message = encryptionSuites[channelName].encrypt(message)
-            log.info("[${channelName}] sending encrypted message: ${message}")
-        }
-        publisher.publish(channelName, message)
     }
 
 }

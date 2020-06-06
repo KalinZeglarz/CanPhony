@@ -21,7 +21,7 @@ class UdpAudioForwarderExample {
         final AudioBuffer audioBuffer1 = new AudioBuffer(4096)
         final Microphone microphone = new Microphone(audioBuffer1)
         final UdpAudioStreamer audioStreamer = new UdpAudioStreamer(
-                remoteAddress: '127.0.0.1',
+                remoteAddress: "127.0.0.1",
                 streamerPort: GlobalConstants.STREAMER_PORT,
                 receiverPort: forwarderPort,
                 sleepTime: microphone.audioQuality.sampleRate / audioBuffer1.size,
@@ -29,8 +29,8 @@ class UdpAudioForwarderExample {
         )
 
         final UdpAudioForwarder forwarder = new UdpAudioForwarder(
-                streamerAddress: '127.0.0.1',
-                receiverAddress: '127.0.0.1',
+                streamerAddress: "127.0.0.1",
+                receiverAddress: "127.0.0.1",
                 streamerPort: GlobalConstants.STREAMER_PORT,
                 receiverPort: GlobalConstants.RECEIVER_PORT,
                 forwarderPort: forwarderPort,
@@ -40,7 +40,7 @@ class UdpAudioForwarderExample {
         final AudioBuffer audioBuffer2 = new AudioBuffer(4096)
         final Speakers speakers = new Speakers(audioBuffer2)
         final UdpAudioReceiver audioReceiver = new UdpAudioReceiver(
-                localAddress: '127.0.0.1',
+                localAddress: "127.0.0.1",
                 streamerPort: forwarderPort,
                 receiverPort: GlobalConstants.RECEIVER_PORT,
                 sleepTime: speakers.audioQuality.sampleRate / audioBuffer2.size,
@@ -56,17 +56,17 @@ class UdpAudioForwarderExample {
         log.info("enter anything to stop ")
         System.in.newReader().readLine()
 
-        log.info('stopping example')
+        log.info("stopping example")
         forwarder.stop()
-        log.info('forwarder stopped')
+        log.info("forwarder stopped")
         microphone.stop()
-        log.info('microphone stopped')
+        log.info("microphone stopped")
         audioStreamer.stop()
-        log.info('streamer stopped')
+        log.info("streamer stopped")
         audioReceiver.stop()
-        log.info('receiver stopped')
+        log.info("receiver stopped")
         speakers.stop()
-        log.info('speaker stopped')
+        log.info("speaker stopped")
     }
 
 }

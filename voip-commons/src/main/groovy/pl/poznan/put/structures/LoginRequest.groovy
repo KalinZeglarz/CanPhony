@@ -9,8 +9,8 @@ class LoginRequest extends ApiRequest implements JSONable {
     @Override
     JSONObject toJSON() {
         return new JSONObject()
-                .put('username', username)
-                .put('password', password)
+                .put("username", username)
+                .put("password", password)
     }
 
 }

@@ -34,7 +34,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
         return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info('clicked register button')
+                log.info("clicked register button")
                 config.serverAddress = serverAddressField.getText()
                 config.serverPort = serverPortField.getText()
                 new RegistrationWindow(config).create(frame)
@@ -43,6 +43,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
     }
 
     private void redisKeyExchangeSubscribe(String username) {
+        log.info("[${config.username + "_beacon"}] subscribing D-H key exchange callback")
         config.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         config.redisClient.encryptionSuites[username].generateKeys()
         config.redisClient.subscribeChannel(username + DH_POSTFIX, username) { String channelName, Message message ->
@@ -54,26 +55,35 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
 
         String clientPublicKey = config.redisClient.encryptionSuites[username].serializePublicKey()
         Message message = new Message(action: MessageAction.KEY_EXCHANGE, sender: username, content: clientPublicKey)
-        config.redisClient.publishMessage(username + DH_POSTFIX, 'server', message)
+        config.redisClient.publishMessage(username + DH_POSTFIX, "server", message)
     }
 
     private void redisEncryptionOkSubscribe(String username) {
+        log.info("[${config.username + "_beacon"}] subscribing D-H OK callback")
         config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
             String decryptedMessage = message.content
-            assert decryptedMessage == 'OK!'
+            assert decryptedMessage == "OK!"
             config.redisClient.unsubscribe(channelName)
             encryptionSetUpped = true
         }
 
         Message message = new Message(action: MessageAction.KEY_EXCHANGE, sender: username, content: "OK!")
-        config.redisClient.publishMessage(username, 'server', message)
+        config.redisClient.publishMessage(username, "server", message)
+    }
+
+    private void redisBeaconSubscribe() {
+        log.info("[${config.username + "_beacon"}] subscribing with beacon callback")
+        config.redisClient.subscribeChannel(config.username + "_beacon", config.username) { String channelName, Message message ->
+            log.info("[${channelName}] sending beacon response")
+            config.redisClient.publishMessage(channelName, config.username, "server", "OK!")
+        }
     }
 
     private ActionListener createLoginButtonListener() {
         return new ActionListener() {
             @Override
             void actionPerformed(ActionEvent e) {
-                log.info('clicked login button')
+                log.info("clicked login button")
                 String username = usernameField.getText()
                 String password = passwordField.getPassword()
                 try {
@@ -99,6 +109,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     while (!encryptionSetUpped) {
                         sleep(100)
                     }
+                    redisBeaconSubscribe()
                     new LoggedInWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, loginResponse.message)

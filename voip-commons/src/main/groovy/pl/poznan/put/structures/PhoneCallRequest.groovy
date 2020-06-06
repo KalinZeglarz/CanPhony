@@ -9,8 +9,8 @@ class PhoneCallRequest extends ApiRequest implements JSONable {
     @Override
     JSONObject toJSON() {
         return new JSONObject()
-                .put('sourceUsername', sourceUsername)
-                .put('targetUsername', targetUsername)
+                .put("sourceUsername", sourceUsername)
+                .put("targetUsername", targetUsername)
     }
 
 }

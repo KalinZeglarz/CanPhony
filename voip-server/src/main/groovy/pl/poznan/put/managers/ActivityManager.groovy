@@ -34,8 +34,11 @@ class ActivityManager {
     }
 
     static void removeUser(String username) {
-        activeUsers.remove(username)
         DatabaseManager.setUserStatus(username, UserStatus.INACTIVE)
+        if (!activeUsers.containsKey(username)) {
+            return
+        }
+        activeUsers.remove(username)
         PubSubManager.redisClient.unsubscribe(username)
         PubSubManager.redisClient.unsubscribe(username + "_beacon")
         PhoneCallManager.removePhoneCall(username)
@@ -51,6 +54,9 @@ class ActivityManager {
                 PubSubManager.redisClient.publishMessage(username + "_beacon", "server", username, "beacon")
                 sleep(5000)
                 PubSubManager.redisClient.unsubscribe(username + "_beacon")
+                if (!activeUsers.containsKey(username)) {
+                    return false
+                }
                 if (!okReceived) {
                     activeUsers.put(username, activeUsers.get(username) + 1)
                 } else {

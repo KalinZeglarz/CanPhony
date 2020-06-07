@@ -9,13 +9,14 @@ import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.LoginResponse
 import pl.poznan.put.windows.Window
+import redis.clients.jedis.exceptions.JedisException
 
 import javax.swing.*
 import java.awt.*
 import java.awt.event.ActionEvent
 import java.awt.event.ActionListener
 
-import static pl.poznan.put.GlobalConstants.DH_POSTFIX
+import static pl.poznan.put.GlobalConstants.DH_PREFIX
 
 @Slf4j
 class LoggedOutWindow extends Window implements SaveClientConfig {
@@ -43,10 +44,10 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
     }
 
     private void redisKeyExchangeSubscribe(String username) {
-        log.info("[${config.username + "_beacon"}] subscribing D-H key exchange callback")
+        log.info("[${config.username}] subscribing D-H key exchange callback")
         config.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         config.redisClient.encryptionSuites[username].generateKeys()
-        config.redisClient.subscribeChannel(username + DH_POSTFIX, username) { String channelName, Message message ->
+        config.redisClient.subscribeChannel(DH_PREFIX + username, username) { String channelName, Message message ->
             String serverPublicKey = message.content
             config.redisClient.encryptionSuites[username].generateCommonSecretKey(serverPublicKey)
             config.redisClient.unsubscribe(channelName)
@@ -55,11 +56,11 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
 
         String clientPublicKey = config.redisClient.encryptionSuites[username].serializePublicKey()
         Message message = new Message(action: MessageAction.KEY_EXCHANGE, sender: username, content: clientPublicKey)
-        config.redisClient.publishMessage(username + DH_POSTFIX, "server", message)
+        config.redisClient.publishMessage(DH_PREFIX + username, "server", message)
     }
 
     private void redisEncryptionOkSubscribe(String username) {
-        log.info("[${config.username + "_beacon"}] subscribing D-H OK callback")
+        log.info("[${config.username}] subscribing D-H OK callback")
         config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
             String decryptedMessage = message.content
             assert decryptedMessage == "OK!"
@@ -105,7 +106,12 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     config.username = username
                     config.redisClient = new RedisClient(loginResponse.pubSubHost)
 
-                    redisKeyExchangeSubscribe(config.username)
+                    try {
+                        redisKeyExchangeSubscribe(config.username)
+                    } catch (JedisException ignored) {
+                        JOptionPane.showMessageDialog(frame, "Could not connect to Redis.")
+                        return
+                    }
                     while (!encryptionSetUpped) {
                         sleep(100)
                     }

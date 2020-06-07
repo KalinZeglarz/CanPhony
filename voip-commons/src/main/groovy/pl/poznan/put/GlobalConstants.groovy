@@ -8,6 +8,6 @@ class GlobalConstants {
     static final int FORWARDER_MAX_PORT = 60000
     static final int REDIS_PORT = 6379
     static final int SESSION_ID_MAX = 50000
-    static final String DH_POSTFIX = "_diffie_hellman"
+    static final String DH_PREFIX = "diffie-hellman_"
 
 }

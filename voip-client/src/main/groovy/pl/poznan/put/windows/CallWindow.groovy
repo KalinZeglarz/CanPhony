@@ -56,6 +56,8 @@ class CallWindow extends Window {
             void actionPerformed(ActionEvent e) {
                 log.info("clicked end call button")
                 config.httpClient.endCall(config.username, config.currentCallUsername)
+                config.phoneCallClient.stop()
+                config.phoneCallClient = null
                 new LoggedInWindow(config).create(frame)
             }
         })

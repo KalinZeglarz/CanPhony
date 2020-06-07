@@ -12,7 +12,7 @@ class RedisClient {
 
     boolean checkMessageTarget = true
     protected final String redisHost
-    protected final Jedis publisher
+    protected Jedis publisher
     protected final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
     protected final Map<String, Thread> subscriberThreads = new HashMap<>()
     final Map<String, EncryptionSuite> encryptionSuites = new HashMap<>()
@@ -20,7 +20,7 @@ class RedisClient {
     RedisClient(String redisHost, boolean checkMessageTarget) {
         this.checkMessageTarget = checkMessageTarget
         this.redisHost = redisHost
-        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
+        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 60)
     }
 
     RedisClient(String redisHost) {
@@ -83,20 +83,25 @@ class RedisClient {
 
     private void publishMessageFinish(String channelName, String message) {
         log.info("[${channelName}] publishing message: ${message}")
-        if (encryptionSuites[channelName] != null) {
-            message = encryptionSuites[channelName].encrypt(message)
+        if (encryptionSuites[channelName.split('_').first()] != null) {
+            message = encryptionSuites[channelName.split('_').first()].encrypt(message)
             log.info("[${channelName}] sending encrypted message: ${message}")
         }
-        publisher.publish(channelName, message)
+        try {
+            publisher.publish(channelName, message)
+        } catch (JedisConnectionException ignored) {
+            publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 60)
+            publisher.publish(channelName, message)
+        }
     }
 
     private JedisPubSub createPubSub(String currentSubscriber, Closure onMessage) {
         return new JedisPubSub() {
             @Override
             void onMessage(String channel, String messageString) {
-                if (encryptionSuites[channel] != null) {
+                if (encryptionSuites[channel.split('_').first()] != null) {
                     log.info("[${channel}] received encrypted message: ${messageString}")
-                    messageString = encryptionSuites[channel].decrypt(messageString)
+                    messageString = encryptionSuites[channel.split('_').first()].decrypt(messageString)
                 }
                 Message message = Message.parseJSON(messageString)
                 if (message.sender == currentSubscriber) {

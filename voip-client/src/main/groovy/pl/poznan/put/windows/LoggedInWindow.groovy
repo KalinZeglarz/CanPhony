@@ -56,7 +56,7 @@ class LoggedInWindow extends Window {
                                 action: ACCEPT_CALL, sender: username))
                         config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
                         config.phoneCallClient.start()
-                        userListListenerThread.interrupt()
+                        stopUserListListener = true
                         new CallWindow(config).create(frame)
                     } else {
                         config.httpClient.rejectCall(phoneCallResponse.targetUsername, phoneCallResponse.sourceUsername)
@@ -67,8 +67,8 @@ class LoggedInWindow extends Window {
     }
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
-        log.info("[server] subscribing with start call callback")
-        config.redisClient.unsubscribe("server")
+        log.info("[${config.username}] subscribing with start call callback")
+        config.redisClient.unsubscribe(config.username)
         config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")

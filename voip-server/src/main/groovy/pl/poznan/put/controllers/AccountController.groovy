@@ -16,7 +16,7 @@ import pl.poznan.put.structures.*
 
 import javax.servlet.http.HttpServletRequest
 
-import static pl.poznan.put.GlobalConstants.getDH_POSTFIX
+import static pl.poznan.put.GlobalConstants.DH_PREFIX
 import static pl.poznan.put.structures.AccountStatus.*
 
 @Slf4j
@@ -43,7 +43,6 @@ class AccountController {
         }
 
         DatabaseManager.updateUserAddress(loginRequest.username, request.remoteAddr)
-        DatabaseManager.setUserStatus(loginRequest.username, UserStatus.ACTIVE)
 
         LoginResponse response = new LoginResponse(pubSubHost: PubSubManager.getRedisHost(),
                 pubSubPort: GlobalConstants.REDIS_PORT)
@@ -99,14 +98,14 @@ class AccountController {
     private static void redisKeyExchangeSubscribe(String username) {
         PubSubManager.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         PubSubManager.redisClient.encryptionSuites[username].generateKeys()
-        PubSubManager.redisClient.subscribeChannel(username + DH_POSTFIX, "server") { String channelName, Message message ->
+        PubSubManager.redisClient.subscribeChannel(DH_PREFIX + username, "server") { String channelName, Message message ->
             String clientPublicKey = message.content
             PubSubManager.redisClient.encryptionSuites[username].generateCommonSecretKey(clientPublicKey)
             PubSubManager.redisClient.unsubscribe(channelName)
 
             String serverPublicKey = PubSubManager.redisClient.encryptionSuites[username].serializePublicKey()
             Message messageToClient = new Message(action: MessageAction.KEY_EXCHANGE, sender: "server", content: serverPublicKey)
-            PubSubManager.redisClient.publishMessage(username + DH_POSTFIX, username, messageToClient)
+            PubSubManager.redisClient.publishMessage(DH_PREFIX + username, username, messageToClient)
             redisEncryptionOkSubscribe(username)
         }
     }
@@ -119,6 +118,7 @@ class AccountController {
 
             Message okMessage = new Message(action: MessageAction.KEY_EXCHANGE, sender: "server", content: "OK!")
             PubSubManager.redisClient.publishMessage(username, okMessage)
+            DatabaseManager.setUserStatus(username, UserStatus.ACTIVE)
             ActivityManager.addUser(username)
             redisMessageForwardSubscribe(username)
         }

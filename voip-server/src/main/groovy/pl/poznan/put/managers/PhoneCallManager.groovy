@@ -25,12 +25,19 @@ class PhoneCallManager {
 
         final int forwarderPort1 = getForwarderPort()
         final int forwarderPort2 = getForwarderPort()
-        UdpAudioForwarder audioForwarder1 = new UdpAudioForwarder(streamerAddress: sourceUserAddress,
-                streamerPort: streamerPort, receiverAddress: targetUserAddress, receiverPort: receiverPort,
-                forwarderPort: forwarderPort1, audioQuality: params.audioQuality, bufferSize: params.bufferSize)
-        UdpAudioForwarder audioForwarder2 = new UdpAudioForwarder(streamerAddress: targetUserAddress,
-                streamerPort: streamerPort, receiverAddress: sourceUserAddress, receiverPort: receiverPort,
-                forwarderPort: forwarderPort2, audioQuality: params.audioQuality, bufferSize: params.bufferSize)
+
+        /* forwarder for direction source -> target */
+        UdpAudioForwarder audioForwarder1 = new UdpAudioForwarder(sourceAddress: sourceUserAddress,
+                sourcePort: streamerPort, targetAddress: targetUserAddress, targetPort: receiverPort,
+                forwarderPort: forwarderPort1, audioQuality: params.audioQuality, bufferSize: params.bufferSize,
+                targetEncryptionSuite: params.targetEncryptionSuite,
+                sourceEncryptionSuite: params.sourceEncryptionSuite)
+        /* forwarder for direction target -> source */
+        UdpAudioForwarder audioForwarder2 = new UdpAudioForwarder(sourceAddress: targetUserAddress,
+                sourcePort: streamerPort, targetAddress: sourceUserAddress, targetPort: receiverPort,
+                forwarderPort: forwarderPort2, audioQuality: params.audioQuality, bufferSize: params.bufferSize,
+                targetEncryptionSuite: params.sourceEncryptionSuite,
+                sourceEncryptionSuite: params.targetEncryptionSuite)
         phoneCallForwarders.put(params.sessionId, new Tuple2(audioForwarder1, audioForwarder2))
 
         audioForwarder1.start()

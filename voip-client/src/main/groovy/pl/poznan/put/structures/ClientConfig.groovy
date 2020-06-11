@@ -5,6 +5,7 @@ import org.json.JSONObject
 import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.pubsub.RedisClient
+import pl.poznan.put.security.EncryptionSuite
 
 @ToString
 class ClientConfig implements JSONable {
@@ -12,6 +13,7 @@ class ClientConfig implements JSONable {
     /* used at runtime */
     VoipHttpClient httpClient = null
     RedisClient redisClient = null
+    EncryptionSuite encryptionSuite = null
     PhoneCallClient phoneCallClient = null
     String currentCallUsername = null
 

@@ -8,6 +8,8 @@ class GlobalConstants {
     static final int FORWARDER_MAX_PORT = 60000
     static final int REDIS_PORT = 6379
     static final int SESSION_ID_MAX = 50000
+    static final int AUDIO_BUFFER_SIZE = 4096
     static final String DH_PREFIX = "diffie-hellman_"
+    static boolean ENCRYPT_AUDIO = false
 
 }

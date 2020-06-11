@@ -1,5 +1,6 @@
 package pl.poznan.put
 
+
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import pl.poznan.put.managers.ActivityManager
@@ -29,6 +30,7 @@ class Application {
     }
 
     static void main(String[] args) {
+        GlobalConstants.ENCRYPT_AUDIO = Boolean.valueOf(System.getProperty('cp.encryptAudio', 'false'))
         setupEnvironmentalVariables()
         SpringApplication.run(Application.class, args)
         DatabaseManager.createDatabaseIfNotExists()

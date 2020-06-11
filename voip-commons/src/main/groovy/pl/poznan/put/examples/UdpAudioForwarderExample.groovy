@@ -18,7 +18,7 @@ class UdpAudioForwarderExample {
     static void main(String[] args) {
         final int forwarderPort = 50001
 
-        final AudioBuffer audioBuffer1 = new AudioBuffer(4096)
+        final AudioBuffer audioBuffer1 = new AudioBuffer()
         final Microphone microphone = new Microphone(audioBuffer1)
         final UdpAudioStreamer audioStreamer = new UdpAudioStreamer(
                 remoteAddress: "127.0.0.1",
@@ -29,15 +29,15 @@ class UdpAudioForwarderExample {
         )
 
         final UdpAudioForwarder forwarder = new UdpAudioForwarder(
-                streamerAddress: "127.0.0.1",
-                receiverAddress: "127.0.0.1",
-                streamerPort: GlobalConstants.STREAMER_PORT,
-                receiverPort: GlobalConstants.RECEIVER_PORT,
+                sourceAddress: "127.0.0.1",
+                targetAddress: "127.0.0.1",
+                sourcePort: GlobalConstants.STREAMER_PORT,
+                targetPort: GlobalConstants.RECEIVER_PORT,
                 forwarderPort: forwarderPort,
-                bufferSize: 4096
+                bufferSize: GlobalConstants.AUDIO_BUFFER_SIZE
         )
 
-        final AudioBuffer audioBuffer2 = new AudioBuffer(4096)
+        final AudioBuffer audioBuffer2 = new AudioBuffer(GlobalConstants.AUDIO_BUFFER_SIZE)
         final Speakers speakers = new Speakers(audioBuffer2)
         final UdpAudioReceiver audioReceiver = new UdpAudioReceiver(
                 localAddress: "127.0.0.1",

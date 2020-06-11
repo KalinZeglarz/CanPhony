@@ -1,6 +1,7 @@
 package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
+import pl.poznan.put.GlobalConstants
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
@@ -65,6 +66,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
             String decryptedMessage = message.content
             assert decryptedMessage == "OK!"
             config.redisClient.unsubscribe(channelName)
+            config.encryptionSuite = config.redisClient.getEncryptionSuite(username)
             encryptionSetUpped = true
         }
 
@@ -116,6 +118,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                         sleep(100)
                     }
                     redisBeaconSubscribe()
+                    GlobalConstants.ENCRYPT_AUDIO = loginResponse.audioEncryption
                     new LoggedInWindow(config).create(frame)
                 } else {
                     JOptionPane.showMessageDialog(frame, loginResponse.message)

@@ -10,12 +10,13 @@ import redis.clients.jedis.exceptions.JedisConnectionException
 @Slf4j
 class RedisClient {
 
-    boolean checkMessageTarget = true
-    protected final String redisHost
-    protected Jedis publisher
-    protected final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
-    protected final Map<String, Thread> subscriberThreads = new HashMap<>()
-    final Map<String, EncryptionSuite> encryptionSuites = new HashMap<>()
+    public final Map<String, EncryptionSuite> encryptionSuites = new HashMap<>()
+
+    private boolean checkMessageTarget = true
+    private final String redisHost
+    private Jedis publisher
+    private final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
+    private final Map<String, Thread> subscriberThreads = new HashMap<>()
 
     RedisClient(String redisHost, boolean checkMessageTarget) {
         this.checkMessageTarget = checkMessageTarget
@@ -79,6 +80,10 @@ class RedisClient {
     void publishMessage(String channelName, String target, Message message) {
         message.target = target
         publishMessageFinish(channelName, message.toJSON().toString())
+    }
+
+    EncryptionSuite getEncryptionSuite(String username) {
+        return encryptionSuites.get(username)
     }
 
     private void publishMessageFinish(String channelName, String message) {

@@ -54,10 +54,7 @@ class LoggedInWindow extends Window {
                         config.currentCallUsername = phoneCallResponse.sourceUsername
                         config.redisClient.publishMessage(username, config.currentCallUsername, new Message(
                                 action: ACCEPT_CALL, sender: username))
-                        config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
-                        config.phoneCallClient.start()
-                        stopUserListListener = true
-                        new CallWindow(config).create(frame)
+                        startCall(config.serverAddress, phoneCallResponse.forwarderPort)
                     } else {
                         config.httpClient.rejectCall(phoneCallResponse.targetUsername, phoneCallResponse.sourceUsername)
                     }
@@ -72,16 +69,20 @@ class LoggedInWindow extends Window {
         config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
-                config.phoneCallClient = new PhoneCallClient(config.serverAddress, response.forwarderPort)
-                config.phoneCallClient.start()
-                stopUserListListener = true
-                new CallWindow(config).create(frame)
+                startCall(config.serverAddress, response.forwarderPort)
             } else if (message.action == REJECT_CALL) {
                 log.info("[${channelName}] received call reject: " + message.content)
                 config.redisClient.unsubscribe(channelName)
                 redisCallRequestSubscribe(config.username)
             }
         }
+    }
+
+    private void startCall(String serverAddress, int forwarderPort) {
+        config.phoneCallClient = new PhoneCallClient(serverAddress, forwarderPort, config.encryptionSuite)
+        config.phoneCallClient.start()
+        stopUserListListener = true
+        new CallWindow(config).create(frame)
     }
 
     private ActionListener createConnectButtonListener() {

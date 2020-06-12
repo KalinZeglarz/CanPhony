@@ -96,9 +96,29 @@ class LoggedInWindow extends Window {
                     return
                 }
                 config.currentCallUsername = contactsTable.getModel().getValueAt(row, 0).toString()
-                // Try to connect
-                PhoneCallResponse response = config.httpClient.startCall(config.username, config.currentCallUsername)
-                redisStartCallSubscribe(response)
+
+                //Check if busy/inactive
+                String toCallStatus = contactsTable.getModel().getValueAt(row, 1).toString()
+
+                if(toCallStatus == "busy") {
+                    JOptionPane.showOptionDialog(frame,
+                            "${config.currentCallUsername} is busy now. Try again later.", "User busy",
+                            JOptionPane.OK_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+                            ['Ok'] as String[], 'Ok')
+                }
+                else if(toCallStatus == "inactive"){
+                    JOptionPane.showOptionDialog(frame,
+                            "${config.currentCallUsername} is inactive now. Try again later when gets active.",
+                            "User inactive",
+                            JOptionPane.OK_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+                            ['Ok'] as String[], 'Ok')
+                }
+                else{
+                    // Try to connect
+                    PhoneCallResponse response = config.httpClient.startCall(config.username,
+                            config.currentCallUsername)
+                    redisStartCallSubscribe(response)
+                }
             }
         }
     }

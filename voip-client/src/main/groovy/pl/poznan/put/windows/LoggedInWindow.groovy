@@ -32,6 +32,8 @@ class LoggedInWindow extends Window {
     DefaultTableModel contactsModel
     JTable contactsTable
     TableRowSorter<TableModel> contactsSorter
+    boolean callRequestResponded = false
+    boolean ignoreCall = false
 
     LoggedInWindow(ClientConfig config) {
         super(config)
@@ -72,6 +74,10 @@ class LoggedInWindow extends Window {
         log.info("[${config.username}] subscribing with start call callback")
         config.redisClient.unsubscribe(config.username)
         config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
+            if (ignoreCall) {
+                return
+            }
+            callRequestResponded = true
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
                 startCall(config.serverAddress, response.forwarderPort)
@@ -79,6 +85,7 @@ class LoggedInWindow extends Window {
                 log.info("[${channelName}] received call reject: " + message.content)
                 config.redisClient.unsubscribe(channelName)
                 redisCallRequestSubscribe(config.username)
+                // TODO: Here put message if call rejected
             }
         }
     }
@@ -121,6 +128,17 @@ class LoggedInWindow extends Window {
                     PhoneCallResponse response = config.httpClient.startCall(config.username,
                             config.currentCallUsername)
                     redisStartCallSubscribe(response)
+                    int timeout = 0
+                    while (!callRequestResponded && timeout < 1500) {
+                        sleep(20)
+                        timeout++
+                    }
+                    if (timeout >= 1500) {
+                        ignoreCall = true
+                        // TODO: Add message here, that user not responded in 30 secs
+                    }
+                    ignoreCall = false
+                    callRequestResponded = false
                 }
             }
         }

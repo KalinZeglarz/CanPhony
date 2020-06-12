@@ -45,9 +45,13 @@ class LoggedInWindow extends Window {
                 PhoneCallResponse phoneCallResponse = PhoneCallResponse.parseJSON(message.content)
                 SwingUtilities.invokeLater {
                     boolean accepted = !JOptionPane.showOptionDialog(frame,
-                            "${phoneCallResponse.sourceUsername} wants to start a call with you.", "Call Request",
-                            JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                            ["Accept", "Reject"] as String[], "Accept")
+                            "${phoneCallResponse.sourceUsername} wants to start a call with you.",
+                            "Call Request",
+                            JOptionPane.YES_NO_CANCEL_OPTION,
+                            JOptionPane.QUESTION_MESSAGE,
+                            null,
+                            ["Accept", "Reject"] as String[],
+                            "Accept")
                     if (accepted) {
                         config.redisClient.unsubscribe(username)
 
@@ -103,9 +107,14 @@ class LoggedInWindow extends Window {
 
                 if (targetUserStatus == UserStatus.BUSY || targetUserStatus == UserStatus.INACTIVE) {
                     String status = targetUserStatus.toString().toLowerCase()
-                    JOptionPane.showOptionDialog(frame, "${config.currentCallUsername} is ${status} now. Try again later.",
-                            "User is busy", JOptionPane.OK_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                            ['Ok'] as String[], 'Ok')
+                    JOptionPane.showOptionDialog(frame,
+                            "${config.currentCallUsername} is ${status} now. Try again later.",
+                            "User is busy",
+                            JOptionPane.OK_OPTION,
+                            JOptionPane.QUESTION_MESSAGE,
+                            null,
+                            ['Ok'] as String[],
+                            'Ok')
                 } else {
                     // Try to connect
                     PhoneCallResponse response = config.httpClient.startCall(config.username,

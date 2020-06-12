@@ -9,6 +9,7 @@ import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.structures.UserStatus
 import pl.poznan.put.structures.api.CallHistoryResponse
 import pl.poznan.put.structures.api.LoginRequest
+import pl.poznan.put.structures.api.PasswordChangeRequest
 
 import java.sql.*
 import java.time.Duration
@@ -97,11 +98,26 @@ class DatabaseManager {
         return true
     }
 
-    static boolean updateUserAddress(String username, String ipAddress) throws SQLException {
+    static void updateUserAddress(String username, String ipAddress) throws SQLException {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String query = "update accounts set ipv4_address='${ipAddress}' where username='${username}'"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
-            return prepareStatement.execute()
+            prepareStatement.execute()
+        }
+    }
+
+    static void updateUserPassword(PasswordChangeRequest request) {
+        updateUserPassword(request.username, request.password, request.newPassword)
+    }
+
+    static void updateUserPassword(String username, String currentPassword, String newPassword) {
+        currentPassword = PasswordHash.createHash(currentPassword)
+        newPassword = PasswordHash.createHash(newPassword)
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "update accounts set password='${newPassword}' where username='${username}' " +
+                    "and password='${currentPassword}'"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            prepareStatement.execute()
         }
     }
 

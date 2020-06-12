@@ -6,6 +6,7 @@ import org.apache.http.client.HttpClient
 import org.apache.http.client.methods.HttpDelete
 import org.apache.http.client.methods.HttpGet
 import org.apache.http.client.methods.HttpPost
+import org.apache.http.client.methods.HttpPut
 import org.apache.http.conn.ssl.NoopHostnameVerifier
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy
@@ -118,6 +119,20 @@ class VoipHttpClient {
         JSONObject responseJson = new JSONObject(responseBody)
         return AccountStatus.valueOf(responseJson.getString("message"))
     }
+
+    AccountStatus changePassword(String username, String currentPassword, String newPassword) {
+        log.info("changing password")
+        JSONObject body = new PasswordChangeRequest(username: username, password: currentPassword,
+                newPassword: newPassword).toJSON()
+        HttpPut request = new HttpPut("https://${serverAddress}/account/change-password")
+        request.setEntity(new StringEntity(body.toString()))
+        request.setHeader("Content-Type", "application/json")
+        HttpResponse response = httpClient.execute(request)
+        String responseBody = EntityUtils.toString(response.getEntity())
+        JSONObject responseJson = new JSONObject(responseBody)
+        return AccountStatus.valueOf(responseJson.getString("message"))
+    }
+
 
     PasswordPolicy getPasswordPolicy() {
         log.info("getting password policy")

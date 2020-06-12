@@ -82,6 +82,24 @@ class AccountController {
         }
     }
 
+    @PutMapping(value = "/change-password", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    ResponseEntity<ApiResponse> changePassword(@RequestBody PasswordChangeRequest changePasswordRequest) {
+        log.info("received password change request: " + changePasswordRequest.toJSON().toString())
+
+        if (DatabaseManager.checkAccount(changePasswordRequest)) {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED)
+        }
+
+        PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
+        if (!policy.validatePassword(changePasswordRequest.newPassword)) {
+            return new ResponseEntity(new MessageResponse(message: PASSWORD_POLICY_NOT_MATCHED), HttpStatus.BAD_REQUEST)
+        }
+
+        DatabaseManager.updateUserPassword(changePasswordRequest)
+        return new ResponseEntity(new MessageResponse(message: SUCCESS), HttpStatus.OK)
+    }
+
     @GetMapping(value = "/user-list", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<ApiResponse> userList() {

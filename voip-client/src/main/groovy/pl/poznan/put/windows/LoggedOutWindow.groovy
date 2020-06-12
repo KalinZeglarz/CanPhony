@@ -60,7 +60,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
         log.info("[${config.username}] subscribing D-H key exchange callback")
         config.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         config.redisClient.encryptionSuites[username].generateKeys()
-        config.redisClient.subscribeChannel(DH_PREFIX + username, username) { String channelName, Message message ->
+        config.redisClient.subscribeChannelWithUnsubscribeAll(DH_PREFIX + username, username) { String channelName, Message message ->
             String serverPublicKey = message.content
             config.redisClient.encryptionSuites[username].generateCommonSecretKey(serverPublicKey)
             config.redisClient.unsubscribe(channelName)
@@ -74,7 +74,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
 
     private void redisEncryptionOkSubscribe(String username) {
         log.info("[${config.username}] subscribing D-H OK callback")
-        config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
+        config.redisClient.subscribeChannelWithUnsubscribeAll(username, username) { String channelName, Message message ->
             String decryptedMessage = message.content
             assert decryptedMessage == "OK!"
             config.redisClient.unsubscribe(channelName)
@@ -88,7 +88,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
 
     private void redisBeaconSubscribe() {
         log.info("[${config.username + "_beacon"}] subscribing with beacon callback")
-        config.redisClient.subscribeChannel(config.username + "_beacon", config.username) { String channelName, Message message ->
+        config.redisClient.subscribeChannelWithUnsubscribeAll(config.username + "_beacon", config.username) { String channelName, Message message ->
             log.info("[${channelName}] sending beacon response")
             config.redisClient.publishMessage(channelName, config.username, "server", "OK!")
         }

@@ -42,7 +42,7 @@ class LoggedInWindow extends Window {
 
     private void redisCallRequestSubscribe(String username) {
         log.info("[server] subscribing with call request callback")
-        config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
+        config.redisClient.subscribeChannelWithUnsubscribeAll(username, username) { String channelName, Message message ->
             if (message.action == CALL_REQUEST && config.phoneCallClient == null) {
                 log.info("[${channelName}] received call request: " + message.content)
                 PhoneCallResponse phoneCallResponse = PhoneCallResponse.parseJSON(message.content)
@@ -55,6 +55,20 @@ class LoggedInWindow extends Window {
                             null,
                             ["Accept", "Reject"] as String[],
                             "Accept")
+
+                    if (ignoreCall) {
+                        JOptionPane.showOptionDialog(frame,
+                                "Call request reached 30s timeout.",
+                                "Call request timeout",
+                                JOptionPane.OK_OPTION,
+                                JOptionPane.QUESTION_MESSAGE,
+                                null,
+                                ['Ok'] as String[],
+                                'Ok')
+                        ignoreCall = false
+                        return
+                    }
+
                     if (accepted) {
                         config.redisClient.unsubscribe(username)
 
@@ -66,26 +80,41 @@ class LoggedInWindow extends Window {
                         config.httpClient.rejectCall(phoneCallResponse.targetUsername, phoneCallResponse.sourceUsername)
                     }
                 }
+            } else if (message.action == END_CALL) {
+                ignoreCall = true
             }
         }
     }
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
         log.info("[${config.username}] subscribing with start call callback")
-        config.redisClient.unsubscribe(config.username)
-        config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
-            if (ignoreCall) {
+        callRequestResponded = false
+        config.redisClient.subscribeChannelWithUnsubscribeAll(config.username, config.username) { String channelName, Message message ->
+            if (ignoreCall || message.action == REJECT_CALL) {
+                log.info("[${channelName}] ignored call or received call reject: " + message.content)
+                config.redisClient.publishMessage(config.username, config.currentCallUsername, new Message(action: END_CALL,
+                        sender: config.currentCallUsername))
+                redisCallRequestSubscribe(config.username)
+                if (ignoreCall) {
+                    return
+                }
+                SwingUtilities.invokeLater {
+                    JOptionPane.showOptionDialog(frame,
+                            "User ${response.targetUsername} rejected your call request.",
+                            "Call rejected",
+                            JOptionPane.OK_OPTION,
+                            JOptionPane.QUESTION_MESSAGE,
+                            null,
+                            ['Ok'] as String[],
+                            'Ok')
+                }
+                ignoreCall = false
                 return
             }
             callRequestResponded = true
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
                 startCall(config.serverAddress, response.forwarderPort)
-            } else if (message.action == REJECT_CALL) {
-                log.info("[${channelName}] received call reject: " + message.content)
-                config.redisClient.unsubscribe(channelName)
-                redisCallRequestSubscribe(config.username)
-                // TODO: Here put message if call rejected
             }
         }
     }
@@ -102,7 +131,6 @@ class LoggedInWindow extends Window {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked connect button")
-
                 // Get selected user
                 int row = contactsTable.getSelectedRow()
                 if (row < 0 || row >= contactsTable.rowCount) {
@@ -125,20 +153,24 @@ class LoggedInWindow extends Window {
                             'Ok')
                 } else {
                     // Try to connect
-                    PhoneCallResponse response = config.httpClient.startCall(config.username,
-                            config.currentCallUsername)
+                    PhoneCallResponse response = config.httpClient.startCall(config.username, config.currentCallUsername)
                     redisStartCallSubscribe(response)
                     int timeout = 0
-                    while (!callRequestResponded && timeout < 1500) {
+                    while (!callRequestResponded && timeout < 150) {
                         sleep(20)
                         timeout++
                     }
-                    if (timeout >= 1500) {
+                    if (timeout >= 150) {
                         ignoreCall = true
-                        // TODO: Add message here, that user not responded in 30 secs
+                        JOptionPane.showOptionDialog(frame,
+                                "Call request reached 30s timeout.",
+                                "Call request timeout",
+                                JOptionPane.OK_OPTION,
+                                JOptionPane.QUESTION_MESSAGE,
+                                null,
+                                ['Ok'] as String[],
+                                'Ok')
                     }
-                    ignoreCall = false
-                    callRequestResponded = false
                 }
             }
         }

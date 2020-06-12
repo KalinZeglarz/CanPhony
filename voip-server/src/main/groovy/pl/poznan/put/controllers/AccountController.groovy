@@ -119,7 +119,7 @@ class AccountController {
     private static void redisKeyExchangeSubscribe(String username) {
         PubSubManager.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         PubSubManager.redisClient.encryptionSuites[username].generateKeys()
-        PubSubManager.redisClient.subscribeChannel(DH_PREFIX + username, "server") { String channelName, Message message ->
+        PubSubManager.redisClient.subscribeChannelWithUnsubscribeAll(DH_PREFIX + username, "server") { String channelName, Message message ->
             String clientPublicKey = message.content
             PubSubManager.redisClient.encryptionSuites[username].generateCommonSecretKey(clientPublicKey)
             PubSubManager.redisClient.unsubscribe(channelName)
@@ -132,7 +132,7 @@ class AccountController {
     }
 
     private static void redisEncryptionOkSubscribe(String username) {
-        PubSubManager.redisClient.subscribeChannel(username, "server") { String channelName, Message message ->
+        PubSubManager.redisClient.subscribeChannelWithUnsubscribeAll(username, "server") { String channelName, Message message ->
             String decryptedMessage = message.content
             assert decryptedMessage == "OK!"
             PubSubManager.redisClient.unsubscribe(channelName)
@@ -146,7 +146,7 @@ class AccountController {
     }
 
     private static void redisMessageForwardSubscribe(String username) {
-        PubSubManager.redisClient.subscribeChannel(username, "server") { String _, Message message ->
+        PubSubManager.redisClient.subscribeChannelWithUnsubscribeAll(username, "server") { String _, Message message ->
             message.sender = "server"
             PubSubManager.redisClient.publishMessage(message.target, message)
         }

@@ -87,7 +87,7 @@ class AccountController {
     ResponseEntity<ApiResponse> changePassword(@RequestBody PasswordChangeRequest changePasswordRequest) {
         log.info("received password change request: " + changePasswordRequest.toJSON().toString())
 
-        if (DatabaseManager.checkAccount(changePasswordRequest)) {
+        if (!DatabaseManager.checkAccount(changePasswordRequest)) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED)
         }
 

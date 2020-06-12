@@ -128,6 +128,9 @@ class VoipHttpClient {
         request.setEntity(new StringEntity(body.toString()))
         request.setHeader("Content-Type", "application/json")
         HttpResponse response = httpClient.execute(request)
+        if (response.statusLine.statusCode == 401) {
+            return null
+        }
         String responseBody = EntityUtils.toString(response.getEntity())
         JSONObject responseJson = new JSONObject(responseBody)
         return AccountStatus.valueOf(responseJson.getString("message"))

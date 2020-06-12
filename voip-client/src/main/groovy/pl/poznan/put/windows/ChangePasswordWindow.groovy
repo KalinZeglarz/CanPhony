@@ -20,6 +20,7 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
     JTextField usernameField
     JPasswordField passwordField
     JPasswordField newPasswordField
+    JPasswordField confirmNewPasswordField
 
     ChangePasswordWindow(ClientConfig config) {
         super(config)
@@ -62,32 +63,36 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
                 }
 
                 String username = usernameField.getText()
-                String password = passwordField.getPassword()
+                String currentPassword = passwordField.getPassword()
                 String newPassword = newPasswordField.getPassword()
+                String confirmNewPassword = confirmNewPasswordField.getPassword()
 
-                if (password == newPassword) {
+                if (currentPassword == newPassword) {
                     JOptionPane.showMessageDialog(frame, "New password can't be the same as an old one!")
                     return
                 }
+                if (newPassword != confirmNewPassword) {
+                    JOptionPane.showMessageDialog(frame, "Passwords does not match.")
+                    return
+                }
 
-                //TODO:Password change
-                AccountStatus accountStatus = config.httpClient.register(username, password)
-//                if (accountStatus == AccountStatus.SUCCESS) {
-//                    JOptionPane.showMessageDialog(frame, "Account created successfully.")
-//                    config.serverAddress = serverAddressField.getText()
-//                    config.serverPort = serverPortField.getText()
-//                    writeConfigToFile(config)
-//                    new LoggedOutWindow(config).create(frame)
-//                } else if (accountStatus == AccountStatus.USERNAME_USED) {
-//                    JOptionPane.showMessageDialog(frame, "Username already in use.")
-//                } else if (accountStatus == AccountStatus.PASSWORD_POLICY_NOT_MATCHED) {
-//                    PasswordPolicy policy = config.httpClient.getPasswordPolicy()
-//                    String messageTitle = "Password does not match password policy"
-//                    JOptionPane.showMessageDialog(frame, mapToPanel(policy.toPrettyMap()), messageTitle,
-//                            JOptionPane.PLAIN_MESSAGE)
-//                } else {
-//                    JOptionPane.showMessageDialog(frame, "Something went wrong.")
-//                }
+                AccountStatus accountStatus = config.httpClient.changePassword(username, currentPassword, newPassword)
+                if (accountStatus == null) {
+                    JOptionPane.showMessageDialog(frame, "Wrong current password.")
+                } else if (accountStatus == AccountStatus.SUCCESS) {
+                    JOptionPane.showMessageDialog(frame, "Password changed successfully.")
+                    config.serverAddress = serverAddressField.getText()
+                    config.serverPort = serverPortField.getText()
+                    writeConfigToFile(config)
+                    new LoggedOutWindow(config).create(frame)
+                } else if (accountStatus == AccountStatus.PASSWORD_POLICY_NOT_MATCHED) {
+                    PasswordPolicy policy = config.httpClient.getPasswordPolicy()
+                    String messageTitle = "Password does not match password policy"
+                    JOptionPane.showMessageDialog(frame, mapToPanel(policy.toPrettyMap()), messageTitle,
+                            JOptionPane.PLAIN_MESSAGE)
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Something went wrong.")
+                }
             }
         }
     }
@@ -114,7 +119,7 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
     }
 
     private JPanel createUsernamePanel() {
-        JLabel usernameLabel = new JLabel("     Username:")
+        JLabel usernameLabel = new JLabel("                 Username:")
         usernameField = new JTextField(18)
 
         JPanel usernamePanel = new JPanel()
@@ -124,7 +129,7 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
     }
 
     private JPanel createPasswordPanel() {
-        JLabel passwordLabel = new JLabel("      Password:")
+        JLabel passwordLabel = new JLabel("    Current password:")
         passwordField = new JPasswordField(18)
 
         JPanel passwordPanel = new JPanel()
@@ -134,7 +139,7 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
     }
 
     private JPanel createNewPasswordPanel() {
-        JLabel newPasswordLabel = new JLabel("New password:")
+        JLabel newPasswordLabel = new JLabel("               Password:")
         newPasswordField = new JPasswordField(17)
         newPasswordLabel.setLabelFor(passwordField)
 
@@ -142,6 +147,17 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
         newPasswordPanel.add(newPasswordLabel)
         newPasswordPanel.add(newPasswordField)
         return newPasswordPanel
+    }
+
+    private JPanel createConfirmNewPasswordPanel() {
+        JLabel confirmNewPasswordLabel = new JLabel("Confirm password:")
+        confirmNewPasswordField = new JPasswordField(17)
+        confirmNewPasswordLabel.setLabelFor(passwordField)
+
+        JPanel confirmNewPasswordPanel = new JPanel()
+        confirmNewPasswordPanel.add(confirmNewPasswordLabel)
+        confirmNewPasswordPanel.add(confirmNewPasswordField)
+        return confirmNewPasswordPanel
     }
 
     private JPanel createControlsPanel() {
@@ -163,7 +179,7 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
         SwingUtilities.invokeLater {
             frame.getContentPane().removeAll()
             frame.repaint()
-            frame.setSize(420, 220)
+            frame.setSize(420, 260)
             frame.setResizable(false)
 
             JPanel mainPanel = new JPanel()
@@ -172,6 +188,7 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
             mainPanel.add(createUsernamePanel())
             mainPanel.add(createPasswordPanel())
             mainPanel.add(createNewPasswordPanel())
+            mainPanel.add(createConfirmNewPasswordPanel())
             mainPanel.add(createControlsPanel())
 
             frame.getContentPane().add(BorderLayout.CENTER, mainPanel)

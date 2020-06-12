@@ -12,6 +12,8 @@ import pl.poznan.put.structures.api.LoginRequest
 import pl.poznan.put.structures.api.PasswordChangeRequest
 
 import java.sql.*
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -239,9 +241,21 @@ class DatabaseManager {
             PreparedStatement prepareStatement = conn.prepareStatement(query)
             try (ResultSet resultSet = prepareStatement.executeQuery()) {
                 while (resultSet.next()) {
+                    String callDate = resultSet.getString('call_date')
+                    callDate = LocalDateTime.parse(callDate).format("yyyy/MM/dd HH:mm:ss")
+
+                    int duration = resultSet.getInt('duration')
+                    String durationString = "rejected"
+                    if (duration >= 0) {
+                        DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss")
+                        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+                        Date date = new Date((long) (duration * 1000))
+                        durationString = dateFormat.format(date)
+                    }
+
                     result.usernames.add(resultSet.getString('username'))
-                    result.dates.add(resultSet.getString('call_date'))
-                    result.durations.add(resultSet.getInt('duration').toString())
+                    result.dates.add(callDate)
+                    result.durations.add(durationString)
                 }
             }
         }

@@ -56,7 +56,9 @@ class GUI extends JFrame {
                 void windowClosing(WindowEvent e) {
                     if (gui.config.username != null) {
                         log.info("window closing")
-                        gui.config.httpClient.logout(gui.config.username)
+                        if (gui.config.httpClient != null) {
+                            gui.config.httpClient.logout(gui.config.username)
+                        }
                     }
                 }
             })

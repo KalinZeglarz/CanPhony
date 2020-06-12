@@ -1,14 +1,14 @@
 package pl.poznan.put.audio
 
-import java.util.concurrent.SynchronousQueue
+import pl.poznan.put.GlobalConstants
 
 class AudioBuffer {
 
-    int size = 4096
+    int size = GlobalConstants.AUDIO_BUFFER_SIZE
     PipedInputStream input = new PipedInputStream()
     PipedOutputStream output = new PipedOutputStream(input)
 
-    private AudioBuffer() {}
+    AudioBuffer() {}
 
     AudioBuffer(int size) {
         this.size = size
@@ -16,8 +16,8 @@ class AudioBuffer {
 
     void write(byte[] data) {
         try {
-            output.flush()
             output.write(data)
+            output.flush()
         } catch (IOException ignored) {
         }
     }

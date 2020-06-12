@@ -15,8 +15,8 @@ class AesEncryptionExample {
         String encryptedString = aes.encrypt(originalString)
         String decryptedString = aes.decrypt(encryptedString)
 
-        log.info('original string: ' + originalString)
-        log.info('encrypted string: ' + encryptedString)
-        log.info('decrypted string: ' + decryptedString)
+        log.info("original string: " + originalString)
+        log.info("encrypted string: " + encryptedString)
+        log.info("decrypted string: " + decryptedString)
     }
 }

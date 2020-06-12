@@ -3,10 +3,9 @@ package pl.poznan.put.windows
 import groovy.util.logging.Slf4j
 import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.pubsub.Message
-import pl.poznan.put.pubsub.MessageFactory
 import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.structures.UserStatus
-import pl.poznan.put.structures.api.PhoneCallResponse
 import pl.poznan.put.windows.Window
 
 import javax.swing.*
@@ -48,16 +47,14 @@ class LoggedInWindow extends Window {
                     boolean accepted = !JOptionPane.showOptionDialog(frame,
                             "${phoneCallResponse.sourceUsername} wants to start a call with you.", "Call Request",
                             JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                            ['Accept', 'Reject'] as String[], 'Accept')
+                            ["Accept", "Reject"] as String[], "Accept")
                     if (accepted) {
                         config.redisClient.unsubscribe(username)
 
                         config.currentCallUsername = phoneCallResponse.sourceUsername
-                        config.redisClient.publishMessage(username, config.currentCallUsername, MessageFactory.createMessage(ACCEPT_CALL, username))
-                        config.phoneCallClient = new PhoneCallClient(config.serverAddress, phoneCallResponse.forwarderPort)
-                        config.phoneCallClient.start()
-                        userListListenerThread.interrupt()
-                        new CallWindow(config).create(frame)
+                        config.redisClient.publishMessage(username, config.currentCallUsername, new Message(
+                                action: ACCEPT_CALL, sender: username))
+                        startCall(config.serverAddress, phoneCallResponse.forwarderPort)
                     } else {
                         config.httpClient.rejectCall(phoneCallResponse.targetUsername, phoneCallResponse.sourceUsername)
                     }
@@ -67,21 +64,25 @@ class LoggedInWindow extends Window {
     }
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
-        log.info("[server] subscribing with start call callback")
-        config.redisClient.unsubscribe('server')
+        log.info("[${config.username}] subscribing with start call callback")
+        config.redisClient.unsubscribe(config.username)
         config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
-                config.phoneCallClient = new PhoneCallClient(config.serverAddress, response.forwarderPort)
-                config.phoneCallClient.start()
-                stopUserListListener = true
-                new CallWindow(config).create(frame)
+                startCall(config.serverAddress, response.forwarderPort)
             } else if (message.action == REJECT_CALL) {
                 log.info("[${channelName}] received call reject: " + message.content)
                 config.redisClient.unsubscribe(channelName)
                 redisCallRequestSubscribe(config.username)
             }
         }
+    }
+
+    private void startCall(String serverAddress, int forwarderPort) {
+        config.phoneCallClient = new PhoneCallClient(serverAddress, forwarderPort, config.encryptionSuite)
+        config.phoneCallClient.start()
+        stopUserListListener = true
+        new CallWindow(config).create(frame)
     }
 
     private ActionListener createConnectButtonListener() {
@@ -130,6 +131,7 @@ class LoggedInWindow extends Window {
                 log.info("clicked log out button")
                 stopUserListListener = true
                 config.httpClient.logout(config.username)
+                config.redisClient.unsubscribe(config.username + "_beacon")
                 config.username = null
                 new LoggedOutWindow(config).create(frame)
             }
@@ -146,7 +148,7 @@ class LoggedInWindow extends Window {
                 }
                 sleep(USER_LIST_REQUEST_PERIOD)
             }
-            log.info('stopped user list listener thread')
+            log.info("stopped user list listener thread")
         })
         userListListenerThread.start()
     }

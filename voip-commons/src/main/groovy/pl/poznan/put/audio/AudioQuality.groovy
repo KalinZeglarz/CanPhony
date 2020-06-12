@@ -44,9 +44,9 @@ enum AudioQuality implements JSONable {
 
     JSONObject toJSON() {
         JSONObject json = new JSONObject()
-        json.put('sampleRate', sampleRate)
-        json.put('sampleSize', sampleSize)
-        json.put('channels', channels)
+        json.put("sampleRate", sampleRate)
+        json.put("sampleSize", sampleSize)
+        json.put("channels", channels)
         return json
     }
 
@@ -62,9 +62,9 @@ enum AudioQuality implements JSONable {
 
     static AudioQuality parseJSON(final String text) {
         JSONObject parsedJson = new JSONObject(text)
-        float sampleRate = parsedJson.getFloat('sampleRate')
-        int sampleSize = parsedJson.getInt('sampleSize')
-        int channels = parsedJson.getInt('channels')
+        float sampleRate = parsedJson.getFloat("sampleRate")
+        int sampleSize = parsedJson.getInt("sampleSize")
+        int channels = parsedJson.getInt("channels")
         return match(sampleRate, sampleSize, channels)
     }
 }

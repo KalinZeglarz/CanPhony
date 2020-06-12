@@ -1,5 +1,6 @@
 package pl.poznan.put.security
 
+
 import javax.crypto.KeyAgreement
 import java.security.KeyPair
 import java.security.KeyPairGenerator
@@ -17,6 +18,7 @@ class EncryptionSuite {
     private PublicKey receivedPublicKey
     private String secretKey
     private AES aes = new AES()
+    private AES audioAes = new AES(true)
 
     void generateKeys() {
         final KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("DH")
@@ -50,14 +52,23 @@ class EncryptionSuite {
         keyAgreement.doPhase(receivedPublicKey, true)
         secretKey = keyAgreement.generateSecret()
         aes.setKey(secretKey)
+        audioAes.setKey(secretKey)
     }
 
     String encrypt(final String message) {
         return aes.encrypt(message)
     }
 
+    byte[] encryptAudio(final byte[] message) {
+        return audioAes.encryptBytes(message)
+    }
+
     String decrypt(final String message) {
         return aes.decrypt(message)
+    }
+
+    byte[] decryptAudio(final byte[] message) {
+        return audioAes.decryptBytes(message)
     }
 
 }

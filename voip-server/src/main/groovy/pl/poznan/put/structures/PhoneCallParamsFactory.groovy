@@ -1,7 +1,7 @@
 package pl.poznan.put.structures
 
 import pl.poznan.put.GlobalConstants
-import pl.poznan.put.structures.api.PhoneCallRequest
+import pl.poznan.put.managers.PubSubManager
 
 class PhoneCallParamsFactory {
 
@@ -13,6 +13,8 @@ class PhoneCallParamsFactory {
         PhoneCallParams result = new PhoneCallParams()
         result.sourceUsername = request.sourceUsername
         result.targetUsername = request.targetUsername
+        result.sourceEncryptionSuite = PubSubManager.redisClient.getEncryptionSuite(request.sourceUsername)
+        result.targetEncryptionSuite = PubSubManager.redisClient.getEncryptionSuite(request.targetUsername)
         result.sessionId = currentSessionId
 
         currentSessionId += 1

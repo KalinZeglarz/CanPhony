@@ -21,9 +21,9 @@ class PasswordPolicy implements JSONable {
     boolean validatePassword(String password) {
         boolean result = true
         result &= password.length() >= minPasswordLength
-        result &= password.findAll(~'[A-Z]').size() >= numberOfUppercaseCharacters
-        result &= password.findAll(~'[a-z]').size() >= numberOfLowercaseCharacters
-        result &= password.findAll(~'[0-9]').size() >= numberOfNumericCharacters
+        result &= password.findAll(~"[A-Z]").size() >= numberOfUppercaseCharacters
+        result &= password.findAll(~"[a-z]").size() >= numberOfLowercaseCharacters
+        result &= password.findAll(~"[0-9]").size() >= numberOfNumericCharacters
         if (!specialCharacters.isEmpty()) {
             result &= password.findAll(~"[${specialCharacters}]").size() >= numberOfSpecialCharacters
         }
@@ -49,7 +49,7 @@ class PasswordPolicy implements JSONable {
     Map<String, String> toMap() {
         Map<String, String> result = new TreeMap<>()
         for (Field field in PasswordPolicy.getFields()) {
-            if (field.getName().contains('$')) {
+            if (field.getName().contains("\$")) {
                 continue
             }
             result.put(field.getName(), field.get(this).toString())

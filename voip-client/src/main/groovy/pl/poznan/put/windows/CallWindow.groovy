@@ -56,6 +56,8 @@ class CallWindow extends Window {
             void actionPerformed(ActionEvent e) {
                 log.info("clicked end call button")
                 config.httpClient.endCall(config.username, config.currentCallUsername)
+                config.phoneCallClient.stop()
+                config.phoneCallClient = null
                 new LoggedInWindow(config).create(frame)
             }
         })
@@ -84,7 +86,7 @@ class CallWindow extends Window {
             int seconds = 0
 
             while (!Thread.currentThread().isInterrupted()) {
-                String timeToShow = ''
+                String timeToShow = ""
                 seconds++
                 if (seconds == 60) {
                     seconds = 0
@@ -96,15 +98,15 @@ class CallWindow extends Window {
                 }
 
                 if (hours < 10) {
-                    timeToShow += '0' + hours + ':'
-                } else timeToShow += hours + ':'
+                    timeToShow += "0" + hours + ":"
+                } else timeToShow += hours + ":"
 
                 if (minutes < 10) {
-                    timeToShow += '0' + minutes + ':'
-                } else timeToShow += minutes + ':'
+                    timeToShow += "0" + minutes + ":"
+                } else timeToShow += minutes + ":"
 
                 if (seconds < 10) {
-                    timeToShow += '0' + seconds
+                    timeToShow += "0" + seconds
                 } else timeToShow += seconds
                 timerLabel.setText(timeToShow)
                 SwingUtilities.invokeLater {

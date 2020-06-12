@@ -1,7 +1,10 @@
 package pl.poznan.put.streaming
 
+
 import groovy.util.logging.Slf4j
+import pl.poznan.put.GlobalConstants
 import pl.poznan.put.audio.AudioBuffer
+import pl.poznan.put.security.EncryptionSuite
 
 @Slf4j
 class UdpAudioStreamer {
@@ -10,26 +13,58 @@ class UdpAudioStreamer {
     int streamerPort
     int receiverPort
     int sleepTime
-    boolean stop
-    Thread streamer
+    Thread streamerThread
     AudioBuffer audioBuffer
+    private DatagramSocket socket
+    private EncryptionSuite encryptionSuite
+    private boolean stop
 
     void start() {
         log.info("starting streaming to address: ${remoteAddress}:${receiverPort}")
+        if (encryptionSuite == null) {
+            log.info("audio streamer encryption is disabled")
+        }
+
         stop = false
-        DatagramSocket socket = new DatagramSocket(null as SocketAddress)
+        socket = new DatagramSocket(null as SocketAddress)
         socket.setReuseAddress(true)
         socket.bind(new InetSocketAddress(streamerPort))
-        streamer = new Thread({
+        streamerThread = createStreamerThread()
+        streamerThread.start()
+        log.info("started streamer")
+    }
+
+    @SuppressWarnings('GrReassignedInClosureLocalVar')
+    private Thread createStreamerThread() {
+        return new Thread({
+            byte[] data = null
+            Thread udpSendThread = new Thread({
+                while (!stop) {
+                    if (data == null) {
+                        sleep(1)
+                        continue
+                    }
+                    byte[] dataToSend = data.collect()
+                    data = null
+                    if (GlobalConstants.ENCRYPT_AUDIO && encryptionSuite != null) {
+                        dataToSend = encryptionSuite.encryptAudio(dataToSend)
+                        if (dataToSend == null) {
+                            throw new RuntimeException("audio encryption failed")
+                        }
+                    }
+
+                    DatagramPacket packet = new DatagramPacket(dataToSend, 0, dataToSend.length,
+                            InetAddress.getByName(remoteAddress), receiverPort)
+                    socket.send(packet)
+                }
+            })
+            udpSendThread.start()
             while (!stop) {
                 try {
-                    byte[] data = audioBuffer.read()
+                    data = audioBuffer.read()
                     if (data == null) {
                         break
                     }
-                    DatagramPacket packet = new DatagramPacket(data, 0, data.length,
-                            InetAddress.getByName(remoteAddress), receiverPort)
-                    socket.send(packet)
                     sleep(sleepTime)
                 } catch (Exception e) {
                     e.printStackTrace()
@@ -38,14 +73,12 @@ class UdpAudioStreamer {
             }
             socket.close()
         })
-        streamer.start()
-        log.info("started streamer")
     }
 
     void stop() {
         stop = true
-        if (streamer != null) {
-            streamer.interrupt()
+        if (streamerThread != null) {
+            streamerThread.interrupt()
         }
         log.info("stopped streamer")
     }

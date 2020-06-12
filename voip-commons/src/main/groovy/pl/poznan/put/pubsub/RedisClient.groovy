@@ -10,17 +10,18 @@ import redis.clients.jedis.exceptions.JedisConnectionException
 @Slf4j
 class RedisClient {
 
-    boolean checkMessageTarget = true
-    protected final String redisHost
-    protected final Jedis publisher
-    protected final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
-    protected final Map<String, Thread> subscriberThreads = new HashMap<>()
-    final Map<String, EncryptionSuite> encryptionSuites = new HashMap<>()
+    public final Map<String, EncryptionSuite> encryptionSuites = new HashMap<>()
+
+    private boolean checkMessageTarget = true
+    private final String redisHost
+    private Jedis publisher
+    private final Map<String, Tuple2<Jedis, JedisPubSub>> channels = new HashMap<>()
+    private final Map<String, Thread> subscriberThreads = new HashMap<>()
 
     RedisClient(String redisHost, boolean checkMessageTarget) {
         this.checkMessageTarget = checkMessageTarget
         this.redisHost = redisHost
-        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
+        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 60)
     }
 
     RedisClient(String redisHost) {
@@ -33,37 +34,7 @@ class RedisClient {
         if (channels.containsKey(channelName)) {
             unsubscribe(channelName)
         }
-        JedisPubSub channel = new JedisPubSub() {
-            @Override
-            void onMessage(String channel, String messageString) {
-                if (encryptionSuites[channel] != null) {
-                    log.info("[${channel}] received encrypted message: ${messageString}")
-                    messageString = encryptionSuites[channel].decrypt(messageString)
-                }
-                Message message = Message.parseJSON(messageString)
-                if (message.sender == currentSubscriber) {
-                    return
-                }
-                log.info("[${channel}] received message: ${messageString}")
-                if (checkMessageTarget && message.target != currentSubscriber) {
-                    log.info("[${channel}] received message to someone else")
-                }
-
-                if (onMessage != null) {
-                    onMessage(channel, message)
-                } else {
-                    log.warn("[${channel}] empty onMessage callback")
-                }
-            }
-
-            @Override
-            void onSubscribe(String channel, int subscribedChannels) {
-            }
-
-            @Override
-            void onUnsubscribe(String channel, int subscribedChannels) {
-            }
-        }
+        JedisPubSub channel = createPubSub(currentSubscriber, onMessage)
 
         Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
         Thread t = new Thread({
@@ -75,7 +46,7 @@ class RedisClient {
         })
         subscriberThreads.put(channelName, t)
         t.start()
-        t.setName(t.getName().replaceAll('Thread', 'pubsub'))
+        t.setName(t.getName().replaceAll("Thread", "pubsub"))
         sleep(500) /* needed for thread initialization */
         channels.put(channelName, new Tuple2(subscriber, channel))
         log.info("[${channelName}] finished subscription (thread name: ${t.getName()})")
@@ -101,18 +72,66 @@ class RedisClient {
         publishMessage(target, target, message)
     }
 
+    void publishMessage(String channelName, String sender, String target, String content) {
+        Message message = new Message(sender: sender, target: target, content: content)
+        publishMessageFinish(channelName, message.toJSON().toString())
+    }
+
     void publishMessage(String channelName, String target, Message message) {
         message.target = target
         publishMessageFinish(channelName, message.toJSON().toString())
     }
 
+    EncryptionSuite getEncryptionSuite(String username) {
+        return encryptionSuites.get(username)
+    }
+
     private void publishMessageFinish(String channelName, String message) {
         log.info("[${channelName}] publishing message: ${message}")
-        if (encryptionSuites[channelName] != null) {
-            message = encryptionSuites[channelName].encrypt(message)
+        if (encryptionSuites[channelName.split('_').first()] != null) {
+            message = encryptionSuites[channelName.split('_').first()].encrypt(message)
             log.info("[${channelName}] sending encrypted message: ${message}")
         }
-        publisher.publish(channelName, message)
+        try {
+            publisher.publish(channelName, message)
+        } catch (JedisConnectionException ignored) {
+            publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 60)
+            publisher.publish(channelName, message)
+        }
+    }
+
+    private JedisPubSub createPubSub(String currentSubscriber, Closure onMessage) {
+        return new JedisPubSub() {
+            @Override
+            void onMessage(String channel, String messageString) {
+                if (encryptionSuites[channel.split('_').first()] != null) {
+                    log.info("[${channel}] received encrypted message: ${messageString}")
+                    messageString = encryptionSuites[channel.split('_').first()].decrypt(messageString)
+                }
+                Message message = Message.parseJSON(messageString)
+                if (message.sender == currentSubscriber) {
+                    return
+                }
+                log.info("[${channel}] received message: ${messageString}")
+                if (checkMessageTarget && message.target != currentSubscriber) {
+                    log.info("[${channel}] received message to someone else")
+                }
+
+                if (onMessage != null) {
+                    onMessage(channel, message)
+                } else {
+                    log.warn("[${channel}] empty onMessage callback")
+                }
+            }
+
+            @Override
+            void onSubscribe(String channel, int subscribedChannels) {
+            }
+
+            @Override
+            void onUnsubscribe(String channel, int subscribedChannels) {
+            }
+        }
     }
 
 }

@@ -1,9 +1,8 @@
-package pl.poznan.put.structures.api
+package pl.poznan.put.structures
 
 import org.json.JSONObject
-import pl.poznan.put.structures.JSONable
 
-class PhoneCallResponse extends ApiResponse implements JSONable {
+class PhoneCallResponse extends ApiResponse {
     int forwarderPort
     String sourceUsername
     String targetUsername
@@ -11,9 +10,9 @@ class PhoneCallResponse extends ApiResponse implements JSONable {
     @Override
     JSONObject toJSON() {
         return new JSONObject()
-                .put('forwarderPort', forwarderPort)
-                .put('sourceUsername', sourceUsername)
-                .put('targetUsername', targetUsername)
+                .put("forwarderPort", forwarderPort)
+                .put("sourceUsername", sourceUsername)
+                .put("targetUsername", targetUsername)
     }
 
     static PhoneCallResponse parseJSON(String text) {
@@ -21,9 +20,9 @@ class PhoneCallResponse extends ApiResponse implements JSONable {
     }
 
     static PhoneCallResponse parseJSON(JSONObject object) {
-        int forwarderPort = object.getInt('forwarderPort')
-        String sourceUsername = object.getString('sourceUsername')
-        String targetUsername = object.getString('targetUsername')
+        int forwarderPort = object.getInt("forwarderPort")
+        String sourceUsername = object.getString("sourceUsername")
+        String targetUsername = object.getString("targetUsername")
         return new PhoneCallResponse(forwarderPort: forwarderPort, sourceUsername: sourceUsername,
                 targetUsername: targetUsername)
     }

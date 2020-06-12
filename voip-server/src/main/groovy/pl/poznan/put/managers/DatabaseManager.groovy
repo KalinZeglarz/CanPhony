@@ -5,11 +5,13 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
 import pl.poznan.put.PasswordHash
 import pl.poznan.put.structures.AccountStatus
+import pl.poznan.put.structures.LoginRequest
 import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.structures.UserStatus
-import pl.poznan.put.structures.api.LoginRequest
 
 import java.sql.*
+
+import static pl.poznan.put.structures.UserStatus.INACTIVE
 
 @Slf4j
 class DatabaseManager {
@@ -38,7 +40,7 @@ class DatabaseManager {
             System.exit(1)
         }
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
-            for (String scriptLine in ddl.split(';')) {
+            for (String scriptLine in ddl.split(";")) {
                 if (scriptLine.isEmpty() || scriptLine.trim().isEmpty()) {
                     continue
                 }
@@ -52,11 +54,11 @@ class DatabaseManager {
                 numberOfLowercaseCharacters: 0,
                 numberOfNumericCharacters: 0,
                 numberOfSpecialCharacters: 0,
-                specialCharacters: '!@#$%^&*_-'
+                specialCharacters: "!@#\$%^&*_-"
         )
         setPasswordPolicy(defaultPasswordPolicy)
 
-        log.info('database setup success')
+        log.info("database setup success")
     }
 
     static AccountStatus checkAccount(String username, String password) throws SQLException {
@@ -83,7 +85,7 @@ class DatabaseManager {
         password = PasswordHash.createHash(password)
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String query = "insert into accounts (username, password, status) " +
-                    "values ('${username}','${password}','${UserStatus.INACTIVE.toString()}')"
+                    "values ('${username}','${password}','${INACTIVE.toString()}')"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
             prepareStatement.execute()
         } catch (SQLException ignored) {
@@ -100,11 +102,12 @@ class DatabaseManager {
         }
     }
 
-    static boolean setUserStatus(String username, UserStatus userStatus) {
+    static void setUserStatus(String username, UserStatus userStatus) {
+        log.info("updating user ${username} status to ${userStatus.toString()}")
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String query = "update accounts set status='${userStatus.toString()}' where username='${username}'"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
-            return prepareStatement.execute()
+            prepareStatement.execute()
         }
     }
 
@@ -114,7 +117,7 @@ class DatabaseManager {
             PreparedStatement prepareStatement = conn.prepareStatement(query)
             try (ResultSet resultSet = prepareStatement.executeQuery()) {
                 resultSet.next()
-                return resultSet.getString(1)
+                return resultSet.getString('ipv4_address')
             }
         }
     }
@@ -129,7 +132,7 @@ class DatabaseManager {
                 }
             }
         }
-        log.info('retrieved password policy: ' + result.toMap())
+        log.info("retrieved password policy: " + result.toMap())
         return result
     }
 
@@ -146,7 +149,7 @@ class DatabaseManager {
                         userStatus = UserStatus.valueOf(userStatusText)
                     }
 
-                    result.put(resultSet.getString(1), userStatus)
+                    result.put(resultSet.getString("username"), userStatus)
                 }
             }
         }
@@ -161,6 +164,17 @@ class DatabaseManager {
                         "values ('${entry.getKey()}','${entry.getValue()}')"
                 PreparedStatement prepareStatement = conn.prepareStatement(query)
                 prepareStatement.execute()
+            }
+        }
+    }
+
+    static UserStatus getUserStatus(String username) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "select status from accounts where username='${username}'"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            try (ResultSet resultSet = prepareStatement.executeQuery()) {
+                resultSet.next()
+                return UserStatus.valueOf(resultSet.getString("status"))
             }
         }
     }

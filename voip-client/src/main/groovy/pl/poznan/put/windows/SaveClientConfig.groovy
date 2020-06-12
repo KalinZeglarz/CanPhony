@@ -7,7 +7,7 @@ import pl.poznan.put.structures.ClientConfig
 interface SaveClientConfig {
 
     default void writeConfigToFile(ClientConfig config) {
-        File configFile = new File('clientConfig.json')
+        File configFile = new File("clientConfig.json")
         configFile.setText(config.toJSON().toString())
     }
 

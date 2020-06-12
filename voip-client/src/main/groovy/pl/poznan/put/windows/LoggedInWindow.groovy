@@ -29,6 +29,7 @@ class LoggedInWindow extends Window {
 
     JTextField searchField
     DefaultTableModel model
+    DefaultTableModel historyModel
     JTable contactsTable
     JTable historyTable
     TableRowSorter<TableModel> sorter
@@ -236,13 +237,13 @@ class LoggedInWindow extends Window {
     }
 
     private JPanel createHistoryPanel() {
-        model = new DefaultTableModel()
-        model.addColumn("Username")
-        model.addColumn("Date")
-        model.addColumn("Duration")
-        historyTable = new JTable(model)
+        historyModel = new DefaultTableModel()
+        historyModel.addColumn("Username")
+        historyModel.addColumn("Date")
+        historyModel.addColumn("Duration")
+        historyTable = new JTable(historyModel)
         historyTable.setDefaultEditor(Object.class, null)
-        sorter = new TableRowSorter<TableModel>(model)
+        sorter = new TableRowSorter<TableModel>(historyModel)
         historyTable.setRowSorter(sorter)
 
         JScrollPane scrollPane = new JScrollPane(historyTable)

@@ -1,4 +1,4 @@
-package pl.poznan.put.structures
+package pl.poznan.put.structures.api
 
 import org.json.JSONObject
 import pl.poznan.put.GlobalConstants

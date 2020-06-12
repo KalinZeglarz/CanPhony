@@ -5,11 +5,14 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.core.io.Resource
 import pl.poznan.put.PasswordHash
 import pl.poznan.put.structures.AccountStatus
-import pl.poznan.put.structures.LoginRequest
 import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.CallHistoryResponse
+import pl.poznan.put.structures.api.LoginRequest
 
 import java.sql.*
+import java.time.Duration
+import java.time.LocalDateTime
 
 import static pl.poznan.put.structures.UserStatus.INACTIVE
 
@@ -178,4 +181,66 @@ class DatabaseManager {
             }
         }
     }
+
+    static void addCall(String sourceUsername, String targetUsername) {
+        LocalDateTime date = LocalDateTime.now()
+        int userId = getUserId(sourceUsername)
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "insert into calls (id_account, call_date, username) " +
+                    "values (${userId},'${date.toString()}','${targetUsername}')"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            prepareStatement.execute()
+        } catch (SQLException ignored) {
+        }
+    }
+
+    static void updateLatestCallDuration(String username) {
+        LocalDateTime latestCallDate
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "select call_date from calls where username='${username}' " +
+                    "and id_call=(select max(id_call) from calls where username='${username}')"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            try (ResultSet resultSet = prepareStatement.executeQuery()) {
+                resultSet.next()
+                latestCallDate = LocalDateTime.parse(resultSet.getString("call_date"))
+            }
+        }
+
+        float duration = Duration.between(latestCallDate, LocalDateTime.now()).getSeconds()
+        log.info("updating latest ${username} call duration to ${duration}")
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "update calls set duration=${duration} where username='${username}' " +
+                    "and id_call=(select max(id_call) from calls where username='${username}')"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            prepareStatement.execute()
+        }
+    }
+
+    static CallHistoryResponse getUserCallHistory(String username) {
+        CallHistoryResponse result = new CallHistoryResponse()
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "select username, call_date, duration from calls where username='${username}'"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            try (ResultSet resultSet = prepareStatement.executeQuery()) {
+                while (resultSet.next()) {
+                    result.usernames.add(resultSet.getString('username'))
+                    result.dates.add(resultSet.getString('call_date'))
+                    result.durations.add(resultSet.getFloat('duration').toString())
+                }
+            }
+        }
+        return result
+    }
+
+    private static int getUserId(String username) {
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "select id_account from accounts where username='${username}'"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            try (ResultSet resultSet = prepareStatement.executeQuery()) {
+                resultSet.next()
+                return resultSet.getInt("id_account")
+            }
+        }
+    }
+
 }

@@ -8,7 +8,7 @@ import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.pubsub.RedisClient
 import pl.poznan.put.security.EncryptionSuite
 import pl.poznan.put.structures.ClientConfig
-import pl.poznan.put.structures.LoginResponse
+import pl.poznan.put.structures.api.LoginResponse
 import pl.poznan.put.windows.Window
 import redis.clients.jedis.exceptions.JedisException
 

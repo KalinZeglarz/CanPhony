@@ -4,8 +4,8 @@ import groovy.util.logging.Slf4j
 import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.structures.ClientConfig
-import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.PhoneCallResponse
 import pl.poznan.put.windows.Window
 
 import javax.swing.*

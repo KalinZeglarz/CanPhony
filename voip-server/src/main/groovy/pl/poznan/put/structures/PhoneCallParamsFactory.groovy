@@ -2,6 +2,7 @@ package pl.poznan.put.structures
 
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.managers.PubSubManager
+import pl.poznan.put.structures.api.PhoneCallRequest
 
 class PhoneCallParamsFactory {
 

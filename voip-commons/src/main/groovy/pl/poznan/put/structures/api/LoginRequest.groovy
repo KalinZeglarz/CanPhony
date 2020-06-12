@@ -1,6 +1,8 @@
-package pl.poznan.put.structures
+package pl.poznan.put.structures.api
 
 import org.json.JSONObject
+import pl.poznan.put.structures.JSONable
+import pl.poznan.put.structures.api.ApiRequest
 
 class LoginRequest extends ApiRequest implements JSONable {
     String username

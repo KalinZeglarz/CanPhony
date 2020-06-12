@@ -5,7 +5,7 @@ import groovyjarjarantlr4.v4.runtime.misc.Tuple2
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.streaming.UdpAudioForwarder
 import pl.poznan.put.structures.PhoneCallParams
-import pl.poznan.put.structures.PhoneCallResponse
+import pl.poznan.put.structures.api.PhoneCallResponse
 
 @Slf4j
 class PhoneCallManager {
@@ -26,13 +26,13 @@ class PhoneCallManager {
         final int forwarderPort1 = getForwarderPort()
         final int forwarderPort2 = getForwarderPort()
 
-        /* forwarder for direction source -> target */
+        /* forwarder for direction: source -> target */
         UdpAudioForwarder audioForwarder1 = new UdpAudioForwarder(sourceAddress: sourceUserAddress,
                 sourcePort: streamerPort, targetAddress: targetUserAddress, targetPort: receiverPort,
                 forwarderPort: forwarderPort1, audioQuality: params.audioQuality, bufferSize: params.bufferSize,
                 targetEncryptionSuite: params.targetEncryptionSuite,
                 sourceEncryptionSuite: params.sourceEncryptionSuite)
-        /* forwarder for direction target -> source */
+        /* forwarder for direction: target -> source */
         UdpAudioForwarder audioForwarder2 = new UdpAudioForwarder(sourceAddress: targetUserAddress,
                 sourcePort: streamerPort, targetAddress: sourceUserAddress, targetPort: receiverPort,
                 forwarderPort: forwarderPort2, audioQuality: params.audioQuality, bufferSize: params.bufferSize,
@@ -50,6 +50,8 @@ class PhoneCallManager {
         userSessionIds.put(params.sourceUsername, params.sessionId)
         userSessionIds.put(params.targetUsername, params.sessionId)
         sessionIdUsers.put(params.sessionId, new Tuple2(params.sourceUsername, params.targetUsername))
+        DatabaseManager.addCall(params.sourceUsername, params.targetUsername)
+        DatabaseManager.addCall(params.targetUsername, params.sourceUsername)
         return new Tuple2<>(response1, response2)
     }
 
@@ -63,6 +65,8 @@ class PhoneCallManager {
             phoneCallForwarders.get(sessionsId).item2.stop()
         }
         Tuple2<String, String> usernames = sessionIdUsers.get(sessionsId)
+        DatabaseManager.updateLatestCallDuration(usernames.item1)
+        DatabaseManager.updateLatestCallDuration(usernames.item2)
         sessionIdUsers.remove(usernames.item1)
         sessionIdUsers.remove(usernames.item2)
         phoneCallForwarders.remove(sessionsId)

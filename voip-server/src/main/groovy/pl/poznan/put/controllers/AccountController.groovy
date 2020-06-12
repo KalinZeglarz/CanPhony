@@ -12,7 +12,10 @@ import pl.poznan.put.managers.PubSubManager
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.security.EncryptionSuite
-import pl.poznan.put.structures.*
+import pl.poznan.put.structures.AccountStatus
+import pl.poznan.put.structures.PasswordPolicy
+import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.*
 
 import javax.servlet.http.HttpServletRequest
 

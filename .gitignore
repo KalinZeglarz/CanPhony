@@ -28,3 +28,4 @@ target/
 *.iml
 voip-server/src/main/resources/canphony.db
 clientConfig.json
+canphony.db

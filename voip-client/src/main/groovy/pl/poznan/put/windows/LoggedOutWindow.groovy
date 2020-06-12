@@ -44,6 +44,18 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
         }
     }
 
+    private ActionListener createChangePasswordButtonListener() {
+        return new ActionListener() {
+            @Override
+            void actionPerformed(ActionEvent e) {
+                log.info("clicked change password button")
+                config.serverAddress = serverAddressField.getText()
+                config.serverPort = serverPortField.getText()
+                new ChangePasswordWindow(config).create(frame)
+            }
+        }
+    }
+
     private void redisKeyExchangeSubscribe(String username) {
         log.info("[${config.username}] subscribing D-H key exchange callback")
         config.redisClient.encryptionSuites.put(username, new EncryptionSuite())
@@ -169,8 +181,13 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
     }
 
     private JPanel createControlsPanel() {
+
+
         JButton registerButton = new JButton("Register")
         registerButton.addActionListener(createRegisterButtonListener())
+
+        JButton changePasswordButton = new JButton("Change Password")
+        changePasswordButton.addActionListener(createChangePasswordButtonListener())
 
         JButton loginButton = new JButton("Login")
         loginButton.addActionListener(createLoginButtonListener())
@@ -178,6 +195,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
         JPanel controlsPanel = new JPanel()
         controlsPanel.setLayout(new GridLayout(1, 2))
         controlsPanel.add(registerButton)
+        controlsPanel.add(changePasswordButton)
         controlsPanel.add(loginButton)
         return controlsPanel
     }

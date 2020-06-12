@@ -225,7 +225,7 @@ class DatabaseManager {
                 while (resultSet.next()) {
                     result.usernames.add(resultSet.getString('username'))
                     result.dates.add(resultSet.getString('call_date'))
-                    result.durations.add(resultSet.getFloat('duration').toString())
+                    result.durations.add(resultSet.getInt('duration').toString())
                 }
             }
         }

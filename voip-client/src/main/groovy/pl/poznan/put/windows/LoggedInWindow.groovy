@@ -96,25 +96,17 @@ class LoggedInWindow extends Window {
                 if (row < 0 || row >= contactsTable.rowCount) {
                     return
                 }
-                config.currentCallUsername = contactsTable.getModel().getValueAt(row, 0).toString()
+                config.currentCallUsername = model.getValueAt(row, 0).toString()
 
                 //Check if busy/inactive
-                String toCallStatus = contactsTable.getModel().getValueAt(row, 1).toString()
+                UserStatus targetUserStatus = UserStatus.valueOf(model.getValueAt(row, 1).toString().toUpperCase())
 
-                if(toCallStatus == "busy") {
-                    JOptionPane.showOptionDialog(frame,
-                            "${config.currentCallUsername} is busy now. Try again later.", "User busy",
-                            JOptionPane.OK_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+                if (targetUserStatus == UserStatus.BUSY || targetUserStatus == UserStatus.INACTIVE) {
+                    String status = targetUserStatus.toString().toLowerCase()
+                    JOptionPane.showOptionDialog(frame, "${config.currentCallUsername} is ${status} now. Try again later.",
+                            "User is busy", JOptionPane.OK_OPTION, JOptionPane.QUESTION_MESSAGE, null,
                             ['Ok'] as String[], 'Ok')
-                }
-                else if(toCallStatus == "inactive"){
-                    JOptionPane.showOptionDialog(frame,
-                            "${config.currentCallUsername} is inactive now. Try again later when gets active.",
-                            "User inactive",
-                            JOptionPane.OK_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-                            ['Ok'] as String[], 'Ok')
-                }
-                else{
+                } else {
                     // Try to connect
                     PhoneCallResponse response = config.httpClient.startCall(config.username,
                             config.currentCallUsername)

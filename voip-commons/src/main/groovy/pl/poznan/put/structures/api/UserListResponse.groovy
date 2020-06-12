@@ -1,6 +1,7 @@
-package pl.poznan.put.structures
+package pl.poznan.put.structures.api
 
 import org.json.JSONObject
+import pl.poznan.put.structures.UserStatus
 
 class UserListResponse extends ApiResponse {
     Map<String, UserStatus> userList

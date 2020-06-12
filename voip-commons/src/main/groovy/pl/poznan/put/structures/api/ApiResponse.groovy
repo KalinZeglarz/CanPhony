@@ -1,4 +1,4 @@
-package pl.poznan.put.structures
+package pl.poznan.put.structures.api
 
 import pl.poznan.put.structures.JSONable
 

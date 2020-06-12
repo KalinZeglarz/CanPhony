@@ -30,6 +30,7 @@ class LoggedInWindow extends Window {
     JTextField searchField
     DefaultTableModel model
     JTable contactsTable
+    JTable historyTable
     TableRowSorter<TableModel> sorter
 
     LoggedInWindow(ClientConfig config) {
@@ -190,6 +191,13 @@ class LoggedInWindow extends Window {
         return searchPanel
     }
 
+    private JTabbedPane createTabMenu(){
+        JTabbedPane tabbedPane = new JTabbedPane()
+        tabbedPane.addTab("Contacts", createContactsPanel())
+        tabbedPane.addTab("History", createHistoryPanel())
+        return tabbedPane
+    }
+
     private JPanel createContactsPanel() {
         model = new DefaultTableModel()
         model.addColumn("Username")
@@ -205,6 +213,24 @@ class LoggedInWindow extends Window {
         JPanel contactsPanel = new JPanel()
         contactsPanel.add(scrollPane)
         return contactsPanel
+    }
+
+    private JPanel createHistoryPanel() {
+        model = new DefaultTableModel()
+        model.addColumn("Username")
+        model.addColumn("Date")
+        model.addColumn("Duration")
+        historyTable = new JTable(model)
+        historyTable.setDefaultEditor(Object.class, null)
+        sorter = new TableRowSorter<TableModel>(model)
+        historyTable.setRowSorter(sorter)
+
+        JScrollPane scrollPane = new JScrollPane(historyTable)
+        scrollPane.setPreferredSize(new Dimension(350, 150))
+
+        JPanel historyPanel = new JPanel()
+        historyPanel.add(scrollPane)
+        return historyPanel
     }
 
     private JPanel createControlsPanel() {
@@ -227,14 +253,14 @@ class LoggedInWindow extends Window {
         SwingUtilities.invokeLater {
             frame.getContentPane().removeAll()
             frame.repaint()
-            frame.setSize(420, 350)
+            frame.setSize(420, 390)
             frame.setResizable(false)
 
             JPanel mainPanel = new JPanel()
             mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
             mainPanel.add(createUsernamePanel(), BorderLayout.CENTER)
             mainPanel.add(createSearchPanel(), BorderLayout.CENTER)
-            mainPanel.add(createContactsPanel(), BorderLayout.CENTER)
+            mainPanel.add(createTabMenu(), BorderLayout.CENTER)
             mainPanel.add(createControlsPanel(), BorderLayout.CENTER)
 
             // Additional listeners

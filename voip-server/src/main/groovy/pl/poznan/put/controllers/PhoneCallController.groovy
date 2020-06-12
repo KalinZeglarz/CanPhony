@@ -12,9 +12,10 @@ import pl.poznan.put.managers.PubSubManager
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.structures.PhoneCallParamsFactory
-import pl.poznan.put.structures.PhoneCallRequest
-import pl.poznan.put.structures.PhoneCallResponse
 import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.CallHistoryResponse
+import pl.poznan.put.structures.api.PhoneCallRequest
+import pl.poznan.put.structures.api.PhoneCallResponse
 
 import static pl.poznan.put.pubsub.MessageAction.CALL_REQUEST
 
@@ -41,6 +42,8 @@ class PhoneCallController {
     @DeleteMapping(value = "/end-call")
     @ResponseBody
     ResponseEntity endCall(@RequestParam String sourceUsername, @RequestParam String targetUsername) {
+        log.info("received end call request: ${sourceUsername} ${targetUsername}")
+
         Message message = new Message(action: MessageAction.END_CALL, sender: "server")
         PubSubManager.redisClient.publishMessage(targetUsername, message)
         PhoneCallManager.removePhoneCall(sourceUsername)
@@ -58,6 +61,13 @@ class PhoneCallController {
         DatabaseManager.setUserStatus(sourceUsername, UserStatus.ACTIVE)
         DatabaseManager.setUserStatus(targetUsername, UserStatus.ACTIVE)
         return new ResponseEntity(HttpStatus.OK)
+    }
+
+    @GetMapping(value = "/call-history")
+    @ResponseBody
+    ResponseEntity getCallHistory(@RequestParam String username) {
+        CallHistoryResponse response = DatabaseManager.getUserCallHistory(username)
+        return new ResponseEntity(response.toJSON().toString(), HttpStatus.OK)
     }
 
 }

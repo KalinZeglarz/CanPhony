@@ -14,7 +14,10 @@ import org.apache.http.impl.client.HttpClients
 import org.apache.http.ssl.SSLContextBuilder
 import org.apache.http.util.EntityUtils
 import org.json.JSONObject
-import pl.poznan.put.structures.*
+import pl.poznan.put.structures.AccountStatus
+import pl.poznan.put.structures.PasswordPolicy
+import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.*
 
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.SSLContext
@@ -124,6 +127,17 @@ class VoipHttpClient {
         String responseBody = EntityUtils.toString(response.getEntity())
         log.info("received: " + responseBody)
         return PasswordPolicy.parseJSON(responseBody)
+    }
+
+    CallHistoryResponse getCallHistory(String username) {
+        log.info("getting call history")
+        String queryString = "?username=${username}"
+        HttpGet request = new HttpGet("https://${serverAddress}/phone-call/call-history${queryString}")
+        HttpResponse response = httpClient.execute(request)
+
+        String responseBody = EntityUtils.toString(response.getEntity())
+        log.info("received: " + responseBody)
+        return CallHistoryResponse.parseJSON(responseBody)
     }
 
 }

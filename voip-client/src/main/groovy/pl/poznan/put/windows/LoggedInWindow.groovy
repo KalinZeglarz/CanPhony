@@ -5,6 +5,7 @@ import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.CallHistoryResponse
 import pl.poznan.put.structures.api.PhoneCallResponse
 import pl.poznan.put.windows.Window
 
@@ -28,11 +29,9 @@ class LoggedInWindow extends Window {
     private stopUserListListener = false
 
     JTextField searchField
-    DefaultTableModel model
-    DefaultTableModel historyModel
+    DefaultTableModel contactsModel
     JTable contactsTable
-    JTable historyTable
-    TableRowSorter<TableModel> sorter
+    TableRowSorter<TableModel> contactsSorter
 
     LoggedInWindow(ClientConfig config) {
         super(config)
@@ -102,10 +101,10 @@ class LoggedInWindow extends Window {
                 if (row < 0 || row >= contactsTable.rowCount) {
                     return
                 }
-                config.currentCallUsername = model.getValueAt(row, 0).toString()
+                config.currentCallUsername = contactsModel.getValueAt(row, 0).toString()
 
                 //Check if busy/inactive
-                UserStatus targetUserStatus = UserStatus.valueOf(model.getValueAt(row, 1).toString().toUpperCase())
+                UserStatus targetUserStatus = UserStatus.valueOf(contactsModel.getValueAt(row, 1).toString().toUpperCase())
 
                 if (targetUserStatus == UserStatus.BUSY || targetUserStatus == UserStatus.INACTIVE) {
                     String status = targetUserStatus.toString().toLowerCase()
@@ -145,9 +144,9 @@ class LoggedInWindow extends Window {
         userListListenerThread = new Thread({
             while (!stopUserListListener) {
                 Map<String, UserStatus> userList = config.httpClient.getUserList(config.username)
-                model.setRowCount(0)
+                contactsModel.setRowCount(0)
                 for (Map.Entry<String, UserStatus> user in userList) {
-                    model.addRow(user.key, user.value.toString().toLowerCase())
+                    contactsModel.addRow(user.key, user.value.toString().toLowerCase())
                 }
                 sleep(USER_LIST_REQUEST_PERIOD)
             }
@@ -173,10 +172,10 @@ class LoggedInWindow extends Window {
             void filter() {
                 String text = searchField.getText()
                 if (text.length() == 0) {
-                    sorter.setRowFilter(null)
+                    contactsSorter.setRowFilter(null)
                 } else {
                     String caseInsensitive = convertToCaseInsensitiveRegex(text)
-                    sorter.setRowFilter(RowFilter.regexFilter(caseInsensitive))
+                    contactsSorter.setRowFilter(RowFilter.regexFilter(caseInsensitive))
                 }
                 mainPanel.updateUI()
             }
@@ -213,7 +212,7 @@ class LoggedInWindow extends Window {
         return searchPanel
     }
 
-    private JTabbedPane createTabMenu(){
+    private JTabbedPane createTabMenu() {
         JTabbedPane tabbedPane = new JTabbedPane()
         tabbedPane.addTab("Contacts", createContactsPanel())
         tabbedPane.addTab("History", createHistoryPanel())
@@ -221,13 +220,13 @@ class LoggedInWindow extends Window {
     }
 
     private JPanel createContactsPanel() {
-        model = new DefaultTableModel()
-        model.addColumn("Username")
-        model.addColumn("Status")
-        contactsTable = new JTable(model)
+        contactsModel = new DefaultTableModel()
+        contactsModel.addColumn("Username")
+        contactsModel.addColumn("Status")
+        contactsTable = new JTable(contactsModel)
         contactsTable.setDefaultEditor(Object.class, null)
-        sorter = new TableRowSorter<TableModel>(model)
-        contactsTable.setRowSorter(sorter)
+        contactsSorter = new TableRowSorter<TableModel>(contactsModel)
+        contactsTable.setRowSorter(contactsSorter)
 
         JScrollPane scrollPane = new JScrollPane(contactsTable)
         scrollPane.setPreferredSize(new Dimension(350, 150))
@@ -238,13 +237,13 @@ class LoggedInWindow extends Window {
     }
 
     private JPanel createHistoryPanel() {
-        historyModel = new DefaultTableModel()
+        DefaultTableModel historyModel = new DefaultTableModel()
         historyModel.addColumn("Username")
         historyModel.addColumn("Date")
         historyModel.addColumn("Duration")
-        historyTable = new JTable(historyModel)
+        JTable historyTable = new JTable(historyModel)
         historyTable.setDefaultEditor(Object.class, null)
-        sorter = new TableRowSorter<TableModel>(historyModel)
+        TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(historyModel)
         historyTable.setRowSorter(sorter)
 
         JScrollPane scrollPane = new JScrollPane(historyTable)
@@ -252,6 +251,11 @@ class LoggedInWindow extends Window {
 
         JPanel historyPanel = new JPanel()
         historyPanel.add(scrollPane)
+
+        CallHistoryResponse callHistory = config.httpClient.getCallHistory(config.username)
+        for (int i = 0; i < callHistory.getSize(); i++) {
+            historyModel.addRow(callHistory.usernames[i], callHistory.dates[i], callHistory.durations[i])
+        }
         return historyPanel
     }
 

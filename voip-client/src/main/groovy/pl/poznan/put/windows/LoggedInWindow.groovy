@@ -110,7 +110,7 @@ class LoggedInWindow extends Window {
                     String status = targetUserStatus.toString().toLowerCase()
                     JOptionPane.showOptionDialog(frame,
                             "${config.currentCallUsername} is ${status} now. Try again later.",
-                            "User is busy",
+                            "User unreacheable",
                             JOptionPane.OK_OPTION,
                             JOptionPane.QUESTION_MESSAGE,
                             null,

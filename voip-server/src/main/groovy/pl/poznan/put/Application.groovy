@@ -1,6 +1,5 @@
 package pl.poznan.put
 
-
 import org.springframework.boot.SpringApplication
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import pl.poznan.put.managers.ActivityManager
@@ -14,7 +13,7 @@ class Application {
                 "security.require-ssl"         : "true",
                 "server.ssl.key-alias"         : "selfsigned",
                 "server.ssl.key-password"      : "password",
-                "server.ssl.key-store"         : "voip-server/src/main/resources/keystore.jks",
+                "server.ssl.key-store"         : "classpath:resources/keystore.jks",
                 "server.ssl.key-store-provider": "SUN",
                 "server.ssl.key-store-password": "password",
                 "server.ssl.key-store-type"    : "JKS"

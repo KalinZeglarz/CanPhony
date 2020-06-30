@@ -13,9 +13,12 @@
 
     <properties>
         <voip-commons.version>1.0</voip-commons.version>
+
         <slf4j2.version>2.13.2</slf4j2.version>
         <radiance-substance.version>3.0.0</radiance-substance.version>
         <apache-httpclient.version>4.5.12</apache-httpclient.version>
+
+        <maven-shade.version>3.2.4</maven-shade.version>
     </properties>
 
     <dependencies>
@@ -43,5 +46,59 @@
             <version>${apache-httpclient.version}</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>${maven-shade.version}</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <transformers>
+                                <transformer
+                                        implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <manifestEntries>
+                                        <Main-Class>pl.poznan.put.GUI</Main-Class>
+                                    </manifestEntries>
+                                </transformer>
+                            </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>org.codehaus.groovy:groovy-all</artifact>
+                                    <excludes>
+                                        <exclude>groovy/grape/**</exclude>
+                                        <exclude>groovy/inspect/swingui/**</exclude>
+                                        <exclude>groovy/jmx/**</exclude>
+                                        <exclude>groovy/json/**</exclude>
+                                        <exclude>groovy/mock/**</exclude>
+                                        <exclude>groovy/security/**</exclude>
+                                        <exclude>groovy/servlet/**</exclude>
+                                        <exclude>groovy/sql/**</exclude>
+                                        <exclude>groovy/swing/**</exclude>
+                                        <exclude>groovy/text/**</exclude>
+                                        <exclude>groovy/time/**</exclude>
+                                        <exclude>groovy/ui/**</exclude>
+                                        <exclude>groovy/xml/**</exclude>
+                                        <exclude>groovyjarjarantlr/**</exclude>
+                                        <exclude>groovyjarjarcommonscli//**</exclude>
+                                        <exclude>org/codehaus/groovy/ant/**</exclude>
+                                        <exclude>org/codehaus/groovy/antlr/**</exclude>
+                                        <exclude>org/codehaus/groovy/groovydoc/**</exclude>
+                                        <exclude>org/codehaus/groovy/tools/groovydoc/**</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>

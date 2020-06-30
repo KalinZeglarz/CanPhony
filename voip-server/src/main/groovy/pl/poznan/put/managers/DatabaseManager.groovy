@@ -2,7 +2,6 @@ package pl.poznan.put.managers
 
 import groovy.util.logging.Slf4j
 import org.springframework.core.io.ClassPathResource
-import org.springframework.core.io.Resource
 import pl.poznan.put.PasswordHash
 import pl.poznan.put.structures.AccountStatus
 import pl.poznan.put.structures.PasswordPolicy
@@ -22,7 +21,7 @@ import static pl.poznan.put.structures.UserStatus.INACTIVE
 @Slf4j
 class DatabaseManager {
     private static final String DB_PATH = "canphony.db"
-    private static final String DDL_PATH = "/db/sqlite-ddl.sql"
+    private static final String DDL_PATH = "resources/sqlite-ddl.sql"
     private static final String DB_URL = "jdbc:sqlite:${System.getProperty("user.dir")}${File.separator}${DB_PATH}"
 
     private DatabaseManager() {}
@@ -38,8 +37,7 @@ class DatabaseManager {
         }
         String ddl = null
         try {
-            Resource resource = new ClassPathResource(DDL_PATH)
-            ddl = resource.getFile().getText()
+            ddl = new ClassPathResource(DDL_PATH).getInputStream().getText()
         } catch (IOException | NullPointerException e) {
             log.error("ddl file not found, database setup failed")
             e.printStackTrace()

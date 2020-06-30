@@ -1,13 +1,13 @@
 package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
+import pl.poznan.put.ClientConfig
 import pl.poznan.put.GlobalConstants
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.pubsub.MessageAction
 import pl.poznan.put.pubsub.RedisClient
 import pl.poznan.put.security.EncryptionSuite
-import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.api.LoginResponse
 import pl.poznan.put.windows.Window
 import redis.clients.jedis.exceptions.JedisException

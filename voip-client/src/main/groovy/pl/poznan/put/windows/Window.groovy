@@ -1,6 +1,6 @@
 package pl.poznan.put.windows
 
-import pl.poznan.put.structures.ClientConfig
+import pl.poznan.put.ClientConfig
 
 import javax.swing.*
 

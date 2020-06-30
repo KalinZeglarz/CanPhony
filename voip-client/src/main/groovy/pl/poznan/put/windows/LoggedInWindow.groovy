@@ -1,9 +1,9 @@
 package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
+import pl.poznan.put.ClientConfig
 import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.pubsub.Message
-import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.UserStatus
 import pl.poznan.put.structures.api.CallHistoryResponse
 import pl.poznan.put.structures.api.PhoneCallResponse

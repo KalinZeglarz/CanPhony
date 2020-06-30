@@ -2,7 +2,6 @@ package pl.poznan.put
 
 import groovy.util.logging.Slf4j
 import org.pushingpixels.substance.api.skin.SubstanceNightShadeLookAndFeel
-import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.windows.LoggedOutWindow
 
 import javax.swing.*

@@ -1,11 +1,10 @@
-package pl.poznan.put.structures
+package pl.poznan.put
 
 import groovy.transform.ToString
 import org.json.JSONObject
-import pl.poznan.put.PhoneCallClient
-import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.pubsub.RedisClient
 import pl.poznan.put.security.EncryptionSuite
+import pl.poznan.put.structures.JSONable
 
 @ToString
 class ClientConfig implements JSONable {

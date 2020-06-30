@@ -1,9 +1,9 @@
 package pl.poznan.put.windows
 
 import groovy.util.logging.Slf4j
+import pl.poznan.put.ClientConfig
 import pl.poznan.put.VoipHttpClient
 import pl.poznan.put.structures.AccountStatus
-import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.windows.Window
 

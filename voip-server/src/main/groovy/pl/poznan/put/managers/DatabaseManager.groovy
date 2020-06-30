@@ -9,8 +9,11 @@ import pl.poznan.put.structures.PasswordPolicy
 import pl.poznan.put.structures.UserStatus
 import pl.poznan.put.structures.api.CallHistoryResponse
 import pl.poznan.put.structures.api.LoginRequest
+import pl.poznan.put.structures.api.PasswordChangeRequest
 
 import java.sql.*
+import java.text.DateFormat
+import java.text.SimpleDateFormat
 import java.time.Duration
 import java.time.LocalDateTime
 
@@ -97,11 +100,26 @@ class DatabaseManager {
         return true
     }
 
-    static boolean updateUserAddress(String username, String ipAddress) throws SQLException {
+    static void updateUserAddress(String username, String ipAddress) throws SQLException {
         try (Connection conn = DriverManager.getConnection(DB_URL)) {
             String query = "update accounts set ipv4_address='${ipAddress}' where username='${username}'"
             PreparedStatement prepareStatement = conn.prepareStatement(query)
-            return prepareStatement.execute()
+            prepareStatement.execute()
+        }
+    }
+
+    static void updateUserPassword(PasswordChangeRequest request) {
+        updateUserPassword(request.username, request.password, request.newPassword)
+    }
+
+    static void updateUserPassword(String username, String currentPassword, String newPassword) {
+        currentPassword = PasswordHash.createHash(currentPassword)
+        newPassword = PasswordHash.createHash(newPassword)
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String query = "update accounts set password='${newPassword}' where username='${username}' " +
+                    "and password='${currentPassword}'"
+            PreparedStatement prepareStatement = conn.prepareStatement(query)
+            prepareStatement.execute()
         }
     }
 
@@ -223,9 +241,21 @@ class DatabaseManager {
             PreparedStatement prepareStatement = conn.prepareStatement(query)
             try (ResultSet resultSet = prepareStatement.executeQuery()) {
                 while (resultSet.next()) {
+                    String callDate = resultSet.getString('call_date')
+                    callDate = LocalDateTime.parse(callDate).format("yyyy/MM/dd HH:mm:ss")
+
+                    int duration = resultSet.getInt('duration')
+                    String durationString = "rejected"
+                    if (duration >= 0) {
+                        DateFormat dateFormat = new SimpleDateFormat("HH:mm:ss")
+                        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"))
+                        Date date = new Date((long) (duration * 1000))
+                        durationString = dateFormat.format(date)
+                    }
+
                     result.usernames.add(resultSet.getString('username'))
-                    result.dates.add(resultSet.getString('call_date'))
-                    result.durations.add(resultSet.getFloat('duration').toString())
+                    result.dates.add(callDate)
+                    result.durations.add(durationString)
                 }
             }
         }

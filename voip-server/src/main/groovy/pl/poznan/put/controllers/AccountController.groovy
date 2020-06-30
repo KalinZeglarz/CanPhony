@@ -82,6 +82,24 @@ class AccountController {
         }
     }
 
+    @PutMapping(value = "/change-password", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseBody
+    ResponseEntity<ApiResponse> changePassword(@RequestBody PasswordChangeRequest changePasswordRequest) {
+        log.info("received password change request: " + changePasswordRequest.toJSON().toString())
+
+        if (!DatabaseManager.checkAccount(changePasswordRequest)) {
+            return new ResponseEntity(HttpStatus.UNAUTHORIZED)
+        }
+
+        PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
+        if (!policy.validatePassword(changePasswordRequest.newPassword)) {
+            return new ResponseEntity(new MessageResponse(message: PASSWORD_POLICY_NOT_MATCHED), HttpStatus.BAD_REQUEST)
+        }
+
+        DatabaseManager.updateUserPassword(changePasswordRequest)
+        return new ResponseEntity(new MessageResponse(message: SUCCESS), HttpStatus.OK)
+    }
+
     @GetMapping(value = "/user-list", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseBody
     ResponseEntity<ApiResponse> userList() {
@@ -101,7 +119,7 @@ class AccountController {
     private static void redisKeyExchangeSubscribe(String username) {
         PubSubManager.redisClient.encryptionSuites.put(username, new EncryptionSuite())
         PubSubManager.redisClient.encryptionSuites[username].generateKeys()
-        PubSubManager.redisClient.subscribeChannel(DH_PREFIX + username, "server") { String channelName, Message message ->
+        PubSubManager.redisClient.subscribeChannelWithUnsubscribeAll(DH_PREFIX + username, "server") { String channelName, Message message ->
             String clientPublicKey = message.content
             PubSubManager.redisClient.encryptionSuites[username].generateCommonSecretKey(clientPublicKey)
             PubSubManager.redisClient.unsubscribe(channelName)
@@ -114,7 +132,7 @@ class AccountController {
     }
 
     private static void redisEncryptionOkSubscribe(String username) {
-        PubSubManager.redisClient.subscribeChannel(username, "server") { String channelName, Message message ->
+        PubSubManager.redisClient.subscribeChannelWithUnsubscribeAll(username, "server") { String channelName, Message message ->
             String decryptedMessage = message.content
             assert decryptedMessage == "OK!"
             PubSubManager.redisClient.unsubscribe(channelName)
@@ -128,7 +146,7 @@ class AccountController {
     }
 
     private static void redisMessageForwardSubscribe(String username) {
-        PubSubManager.redisClient.subscribeChannel(username, "server") { String _, Message message ->
+        PubSubManager.redisClient.subscribeChannelWithUnsubscribeAll(username, "server") { String _, Message message ->
             message.sender = "server"
             PubSubManager.redisClient.publishMessage(message.target, message)
         }

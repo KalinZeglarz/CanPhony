@@ -29,11 +29,13 @@ class RedisClient {
         publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
     }
 
+    void subscribeChannelWithUnsubscribeAll(String channelName, String currentSubscriber, Closure onMessage) {
+        unsubscribe(channelName)
+        subscribeChannel(channelName, currentSubscriber, onMessage)
+    }
+
     void subscribeChannel(String channelName, String currentSubscriber, Closure onMessage) {
         log.info("[${channelName}] subscribing")
-        if (channels.containsKey(channelName)) {
-            unsubscribe(channelName)
-        }
         JedisPubSub channel = createPubSub(currentSubscriber, onMessage)
 
         Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
@@ -90,7 +92,7 @@ class RedisClient {
         log.info("[${channelName}] publishing message: ${message}")
         if (encryptionSuites[channelName.split('_').first()] != null) {
             message = encryptionSuites[channelName.split('_').first()].encrypt(message)
-            log.info("[${channelName}] sending encrypted message: ${message}")
+            log.info("[${channelName}] publishing encrypted message: ${message}")
         }
         try {
             publisher.publish(channelName, message)

@@ -26,5 +26,6 @@ hs_err_pid*
 target/
 /out/
 *.iml
-canphony.db
+voip-server/src/main/resources/canphony.db
 clientConfig.json
+canphony.db

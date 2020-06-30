@@ -48,7 +48,7 @@ class ActivityManager {
         Thread beaconThread = new Thread({
             boolean okReceived = false
             try {
-                PubSubManager.redisClient.subscribeChannel(username + "_beacon", "server") { String channelName, Message message ->
+                PubSubManager.redisClient.subscribeChannelWithUnsubscribeAll(username + "_beacon", "server") { String channelName, Message message ->
                     okReceived = message.content == "OK!"
                 }
                 PubSubManager.redisClient.publishMessage(username + "_beacon", "server", username, "beacon")

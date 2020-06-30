@@ -14,7 +14,7 @@
     <properties>
         <voip-commons.version>1.0</voip-commons.version>
         <slf4j2.version>2.13.2</slf4j2.version>
-        <radiance-substance.version>2.5.1</radiance-substance.version>
+        <radiance-substance.version>3.0.0</radiance-substance.version>
         <apache-httpclient.version>4.5.12</apache-httpclient.version>
     </properties>
 

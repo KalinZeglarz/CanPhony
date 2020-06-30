@@ -5,6 +5,7 @@ import pl.poznan.put.PhoneCallClient
 import pl.poznan.put.pubsub.Message
 import pl.poznan.put.structures.ClientConfig
 import pl.poznan.put.structures.UserStatus
+import pl.poznan.put.structures.api.CallHistoryResponse
 import pl.poznan.put.structures.api.PhoneCallResponse
 import pl.poznan.put.windows.Window
 
@@ -28,9 +29,11 @@ class LoggedInWindow extends Window {
     private stopUserListListener = false
 
     JTextField searchField
-    DefaultTableModel model
+    DefaultTableModel contactsModel
     JTable contactsTable
-    TableRowSorter<TableModel> sorter
+    TableRowSorter<TableModel> contactsSorter
+    boolean callRequestResponded = false
+    boolean ignoreCall = false
 
     LoggedInWindow(ClientConfig config) {
         super(config)
@@ -39,7 +42,7 @@ class LoggedInWindow extends Window {
 
     private void redisCallRequestSubscribe(String username) {
         log.info("[server] subscribing with call request callback")
-        config.redisClient.subscribeChannel(username, username) { String channelName, Message message ->
+        config.redisClient.subscribeChannelWithUnsubscribeAll(username, username) { String channelName, Message message ->
             if (message.action == CALL_REQUEST && config.phoneCallClient == null) {
                 log.info("[${channelName}] received call request: " + message.content)
                 PhoneCallResponse phoneCallResponse = PhoneCallResponse.parseJSON(message.content)
@@ -52,6 +55,20 @@ class LoggedInWindow extends Window {
                             null,
                             ["Accept", "Reject"] as String[],
                             "Accept")
+
+                    if (ignoreCall) {
+                        JOptionPane.showOptionDialog(frame,
+                                "Call request reached 30s timeout.",
+                                "Call request timeout",
+                                JOptionPane.OK_OPTION,
+                                JOptionPane.QUESTION_MESSAGE,
+                                null,
+                                ['Ok'] as String[],
+                                'Ok')
+                        ignoreCall = false
+                        return
+                    }
+
                     if (accepted) {
                         config.redisClient.unsubscribe(username)
 
@@ -63,21 +80,41 @@ class LoggedInWindow extends Window {
                         config.httpClient.rejectCall(phoneCallResponse.targetUsername, phoneCallResponse.sourceUsername)
                     }
                 }
+            } else if (message.action == END_CALL) {
+                ignoreCall = true
             }
         }
     }
 
     private void redisStartCallSubscribe(PhoneCallResponse response) {
         log.info("[${config.username}] subscribing with start call callback")
-        config.redisClient.unsubscribe(config.username)
-        config.redisClient.subscribeChannel(config.username, config.username) { String channelName, Message message ->
+        callRequestResponded = false
+        config.redisClient.subscribeChannelWithUnsubscribeAll(config.username, config.username) { String channelName, Message message ->
+            if (ignoreCall || message.action == REJECT_CALL) {
+                log.info("[${channelName}] ignored call or received call reject: " + message.content)
+                config.redisClient.publishMessage(config.username, config.currentCallUsername, new Message(action: END_CALL,
+                        sender: config.currentCallUsername))
+                redisCallRequestSubscribe(config.username)
+                if (ignoreCall) {
+                    return
+                }
+                SwingUtilities.invokeLater {
+                    JOptionPane.showOptionDialog(frame,
+                            "User ${response.targetUsername} rejected your call request.",
+                            "Call rejected",
+                            JOptionPane.OK_OPTION,
+                            JOptionPane.QUESTION_MESSAGE,
+                            null,
+                            ['Ok'] as String[],
+                            'Ok')
+                }
+                ignoreCall = false
+                return
+            }
+            callRequestResponded = true
             if (message.action == ACCEPT_CALL && config.phoneCallClient == null) {
                 log.info("[${channelName}] call request accepted")
                 startCall(config.serverAddress, response.forwarderPort)
-            } else if (message.action == REJECT_CALL) {
-                log.info("[${channelName}] received call reject: " + message.content)
-                config.redisClient.unsubscribe(channelName)
-                redisCallRequestSubscribe(config.username)
             }
         }
     }
@@ -94,22 +131,21 @@ class LoggedInWindow extends Window {
             @Override
             void actionPerformed(ActionEvent e) {
                 log.info("clicked connect button")
-
                 // Get selected user
                 int row = contactsTable.getSelectedRow()
                 if (row < 0 || row >= contactsTable.rowCount) {
                     return
                 }
-                config.currentCallUsername = model.getValueAt(row, 0).toString()
+                config.currentCallUsername = contactsModel.getValueAt(row, 0).toString()
 
                 //Check if busy/inactive
-                UserStatus targetUserStatus = UserStatus.valueOf(model.getValueAt(row, 1).toString().toUpperCase())
+                UserStatus targetUserStatus = UserStatus.valueOf(contactsModel.getValueAt(row, 1).toString().toUpperCase())
 
                 if (targetUserStatus == UserStatus.BUSY || targetUserStatus == UserStatus.INACTIVE) {
                     String status = targetUserStatus.toString().toLowerCase()
                     JOptionPane.showOptionDialog(frame,
                             "${config.currentCallUsername} is ${status} now. Try again later.",
-                            "User is busy",
+                            "User unreachable",
                             JOptionPane.OK_OPTION,
                             JOptionPane.QUESTION_MESSAGE,
                             null,
@@ -117,9 +153,24 @@ class LoggedInWindow extends Window {
                             'Ok')
                 } else {
                     // Try to connect
-                    PhoneCallResponse response = config.httpClient.startCall(config.username,
-                            config.currentCallUsername)
+                    PhoneCallResponse response = config.httpClient.startCall(config.username, config.currentCallUsername)
                     redisStartCallSubscribe(response)
+                    int timeout = 0
+                    while (!callRequestResponded && timeout < 150) {
+                        sleep(20)
+                        timeout++
+                    }
+                    if (timeout >= 150) {
+                        ignoreCall = true
+                        JOptionPane.showOptionDialog(frame,
+                                "Call request reached 30s timeout.",
+                                "Call request timeout",
+                                JOptionPane.OK_OPTION,
+                                JOptionPane.QUESTION_MESSAGE,
+                                null,
+                                ['Ok'] as String[],
+                                'Ok')
+                    }
                 }
             }
         }
@@ -143,9 +194,9 @@ class LoggedInWindow extends Window {
         userListListenerThread = new Thread({
             while (!stopUserListListener) {
                 Map<String, UserStatus> userList = config.httpClient.getUserList(config.username)
-                model.setRowCount(0)
+                contactsModel.setRowCount(0)
                 for (Map.Entry<String, UserStatus> user in userList) {
-                    model.addRow(user.key, user.value.toString().toLowerCase())
+                    contactsModel.addRow(user.key, user.value.toString().toLowerCase())
                 }
                 sleep(USER_LIST_REQUEST_PERIOD)
             }
@@ -171,10 +222,10 @@ class LoggedInWindow extends Window {
             void filter() {
                 String text = searchField.getText()
                 if (text.length() == 0) {
-                    sorter.setRowFilter(null)
+                    contactsSorter.setRowFilter(null)
                 } else {
                     String caseInsensitive = convertToCaseInsensitiveRegex(text)
-                    sorter.setRowFilter(RowFilter.regexFilter(caseInsensitive))
+                    contactsSorter.setRowFilter(RowFilter.regexFilter(caseInsensitive))
                 }
                 mainPanel.updateUI()
             }
@@ -211,14 +262,21 @@ class LoggedInWindow extends Window {
         return searchPanel
     }
 
+    private JTabbedPane createTabMenu() {
+        JTabbedPane tabbedPane = new JTabbedPane()
+        tabbedPane.addTab("Contacts", createContactsPanel())
+        tabbedPane.addTab("History", createHistoryPanel())
+        return tabbedPane
+    }
+
     private JPanel createContactsPanel() {
-        model = new DefaultTableModel()
-        model.addColumn("Username")
-        model.addColumn("Status")
-        contactsTable = new JTable(model)
+        contactsModel = new DefaultTableModel()
+        contactsModel.addColumn("Username")
+        contactsModel.addColumn("Status")
+        contactsTable = new JTable(contactsModel)
         contactsTable.setDefaultEditor(Object.class, null)
-        sorter = new TableRowSorter<TableModel>(model)
-        contactsTable.setRowSorter(sorter)
+        contactsSorter = new TableRowSorter<TableModel>(contactsModel)
+        contactsTable.setRowSorter(contactsSorter)
 
         JScrollPane scrollPane = new JScrollPane(contactsTable)
         scrollPane.setPreferredSize(new Dimension(350, 150))
@@ -226,6 +284,29 @@ class LoggedInWindow extends Window {
         JPanel contactsPanel = new JPanel()
         contactsPanel.add(scrollPane)
         return contactsPanel
+    }
+
+    private JPanel createHistoryPanel() {
+        DefaultTableModel historyModel = new DefaultTableModel()
+        historyModel.addColumn("Username")
+        historyModel.addColumn("Date")
+        historyModel.addColumn("Duration")
+        JTable historyTable = new JTable(historyModel)
+        historyTable.setDefaultEditor(Object.class, null)
+        TableRowSorter<TableModel> sorter = new TableRowSorter<TableModel>(historyModel)
+        historyTable.setRowSorter(sorter)
+
+        JScrollPane scrollPane = new JScrollPane(historyTable)
+        scrollPane.setPreferredSize(new Dimension(350, 150))
+
+        JPanel historyPanel = new JPanel()
+        historyPanel.add(scrollPane)
+
+        CallHistoryResponse callHistory = config.httpClient.getCallHistory(config.username)
+        for (int i = 0; i < callHistory.getSize(); i++) {
+            historyModel.addRow(callHistory.usernames[i], callHistory.dates[i], callHistory.durations[i])
+        }
+        return historyPanel
     }
 
     private JPanel createControlsPanel() {
@@ -248,14 +329,14 @@ class LoggedInWindow extends Window {
         SwingUtilities.invokeLater {
             frame.getContentPane().removeAll()
             frame.repaint()
-            frame.setSize(420, 350)
+            frame.setSize(420, 390)
             frame.setResizable(false)
 
             JPanel mainPanel = new JPanel()
             mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
             mainPanel.add(createUsernamePanel(), BorderLayout.CENTER)
             mainPanel.add(createSearchPanel(), BorderLayout.CENTER)
-            mainPanel.add(createContactsPanel(), BorderLayout.CENTER)
+            mainPanel.add(createTabMenu(), BorderLayout.CENTER)
             mainPanel.add(createControlsPanel(), BorderLayout.CENTER)
 
             // Additional listeners

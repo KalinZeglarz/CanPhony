@@ -23,4 +23,8 @@ class CallHistoryResponse extends ApiResponse {
                 .put("durations", durations)
     }
 
+    int getSize() {
+        return usernames.size()
+    }
+
 }

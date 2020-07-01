@@ -118,7 +118,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
                     config.username = usernameField.getText()
                     writeConfigToFile(config)
                     config.username = username
-                    config.redisClient = new RedisClient(loginResponse.pubSubHost)
+                    config.redisClient = new RedisClient(config.serverAddress)
 
                     try {
                         redisKeyExchangeSubscribe(config.username)

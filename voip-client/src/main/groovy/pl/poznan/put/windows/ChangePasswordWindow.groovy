@@ -67,8 +67,13 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
                 String newPassword = newPasswordField.getPassword()
                 String confirmNewPassword = confirmNewPasswordField.getPassword()
 
+                if (username.isBlank() || currentPassword.isBlank() || newPassword.isBlank() || confirmNewPassword.isBlank()) {
+                    JOptionPane.showMessageDialog(frame, "Please fill out all fields.")
+                    return
+                }
+
                 if (currentPassword == newPassword) {
-                    JOptionPane.showMessageDialog(frame, "New password can't be the same as an old one!")
+                    JOptionPane.showMessageDialog(frame, "New password cannot be the same as the old one.")
                     return
                 }
                 if (newPassword != confirmNewPassword) {
@@ -118,46 +123,16 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
         return serverPanel
     }
 
-    private JPanel createUsernamePanel() {
-        JLabel usernameLabel = new JLabel("                 Username:")
-        usernameField = new JTextField(18)
-
-        JPanel usernamePanel = new JPanel()
-        usernamePanel.add(usernameLabel)
-        usernamePanel.add(usernameField)
-        return usernamePanel
-    }
-
-    private JPanel createPasswordPanel() {
-        JLabel passwordLabel = new JLabel("    Current password:")
-        passwordField = new JPasswordField(18)
-
-        JPanel passwordPanel = new JPanel()
-        passwordPanel.add(passwordLabel)
-        passwordPanel.add(passwordField)
-        return passwordPanel
-    }
-
-    private JPanel createNewPasswordPanel() {
-        JLabel newPasswordLabel = new JLabel("               Password:")
+    private JPanel createCredentialsPanel() {
+        usernameField = new JTextField(17)
+        passwordField = new JPasswordField(17)
         newPasswordField = new JPasswordField(17)
-        newPasswordLabel.setLabelFor(passwordField)
-
-        JPanel newPasswordPanel = new JPanel()
-        newPasswordPanel.add(newPasswordLabel)
-        newPasswordPanel.add(newPasswordField)
-        return newPasswordPanel
-    }
-
-    private JPanel createConfirmNewPasswordPanel() {
-        JLabel confirmNewPasswordLabel = new JLabel("Confirm password:")
         confirmNewPasswordField = new JPasswordField(17)
-        confirmNewPasswordLabel.setLabelFor(passwordField)
 
-        JPanel confirmNewPasswordPanel = new JPanel()
-        confirmNewPasswordPanel.add(confirmNewPasswordLabel)
-        confirmNewPasswordPanel.add(confirmNewPasswordField)
-        return confirmNewPasswordPanel
+
+        JComponent[] inputs = [usernameField, passwordField, newPasswordField, confirmNewPasswordField]
+        String[] labels = ["Username:", "Current password:", "Password:", "Confirm password:"]
+        return getTwoColumnLayout(labels, inputs)
     }
 
     private JPanel createControlsPanel() {
@@ -185,10 +160,7 @@ class ChangePasswordWindow extends Window implements SaveClientConfig {
             JPanel mainPanel = new JPanel()
             mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
             mainPanel.add(createServerPanel())
-            mainPanel.add(createUsernamePanel())
-            mainPanel.add(createPasswordPanel())
-            mainPanel.add(createNewPasswordPanel())
-            mainPanel.add(createConfirmNewPasswordPanel())
+            mainPanel.add(createCredentialsPanel())
             mainPanel.add(createControlsPanel())
 
             frame.getContentPane().add(BorderLayout.CENTER, mainPanel)

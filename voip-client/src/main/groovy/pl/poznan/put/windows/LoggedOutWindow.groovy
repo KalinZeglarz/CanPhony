@@ -160,29 +160,16 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
         return serverPanel
     }
 
-    private JPanel createUsernamePanel() {
-        JLabel usernameLabel = new JLabel("     Username:")
+    private JPanel createCredentialsPanel() {
         usernameField = new JTextField(18)
-
-        JPanel usernamePanel = new JPanel()
-        usernamePanel.add(usernameLabel)
-        usernamePanel.add(usernameField)
-        return usernamePanel
-    }
-
-    private JPanel createPasswordPanel() {
-        JLabel passwordLabel = new JLabel("      Password:")
         passwordField = new JPasswordField(18)
 
-        JPanel passwordPanel = new JPanel()
-        passwordPanel.add(passwordLabel)
-        passwordPanel.add(passwordField)
-        return passwordPanel
+        JComponent[] inputs = [usernameField, passwordField]
+        String[] labels = ["Username:", "Password:"]
+        return getTwoColumnLayout(labels, inputs)
     }
 
     private JPanel createControlsPanel() {
-
-
         JButton registerButton = new JButton("Register")
         registerButton.addActionListener(createRegisterButtonListener())
 
@@ -211,8 +198,7 @@ class LoggedOutWindow extends Window implements SaveClientConfig {
             JPanel mainPanel = new JPanel()
             mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
             mainPanel.add(createServerPanel())
-            mainPanel.add(createUsernamePanel())
-            mainPanel.add(createPasswordPanel())
+            mainPanel.add(createCredentialsPanel())
             mainPanel.add(createControlsPanel())
 
             frame.getContentPane().add(BorderLayout.CENTER, mainPanel)

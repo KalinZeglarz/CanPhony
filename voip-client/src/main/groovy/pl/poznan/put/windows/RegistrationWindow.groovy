@@ -19,7 +19,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
     JTextField serverPortField
     JTextField usernameField
     JPasswordField passwordField
-    JPasswordField passConfirmField
+    JPasswordField confirmPasswordField
 
     RegistrationWindow(ClientConfig config) {
         super(config)
@@ -63,9 +63,14 @@ class RegistrationWindow extends Window implements SaveClientConfig {
 
                 String username = usernameField.getText()
                 String password = passwordField.getPassword()
-                String passwordConfirm = passConfirmField.getPassword()
+                String confirmPassword = confirmPasswordField.getPassword()
 
-                if (password != passwordConfirm) {
+                if (username.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+                    JOptionPane.showMessageDialog(frame, "Please fill out all fields.")
+                    return
+                }
+
+                if (password != confirmPassword) {
                     JOptionPane.showMessageDialog(frame, "Passwords does not match.")
                     return
                 }
@@ -113,35 +118,15 @@ class RegistrationWindow extends Window implements SaveClientConfig {
         return serverPanel
     }
 
-    private JPanel createUsernamePanel() {
-        JLabel usernameLabel = new JLabel("     Username:")
-        usernameField = new JTextField(18)
+    private JPanel createCredentialsPanel() {
+        usernameField = new JTextField(17)
+        passwordField = new JPasswordField(17)
+        confirmPasswordField = new JPasswordField(17)
 
-        JPanel usernamePanel = new JPanel()
-        usernamePanel.add(usernameLabel)
-        usernamePanel.add(usernameField)
-        return usernamePanel
-    }
 
-    private JPanel createPasswordPanel() {
-        JLabel passwordLabel = new JLabel("      Password:")
-        passwordField = new JPasswordField(18)
-
-        JPanel passwordPanel = new JPanel()
-        passwordPanel.add(passwordLabel)
-        passwordPanel.add(passwordField)
-        return passwordPanel
-    }
-
-    private JPanel createPasswordConfirmPanel() {
-        JLabel passConfirmLabel = new JLabel("Re-password:")
-        passConfirmField = new JPasswordField(18)
-        passConfirmLabel.setLabelFor(passwordField)
-
-        JPanel passConfirmPanel = new JPanel()
-        passConfirmPanel.add(passConfirmLabel)
-        passConfirmPanel.add(passConfirmField)
-        return passConfirmPanel
+        JComponent[] inputs = [usernameField, passwordField, confirmPasswordField]
+        String[] labels = ["Username:", "Password:", "Confirm password:"]
+        return getTwoColumnLayout(labels, inputs)
     }
 
     private JPanel createControlsPanel() {
@@ -169,9 +154,7 @@ class RegistrationWindow extends Window implements SaveClientConfig {
             JPanel mainPanel = new JPanel()
             mainPanel.setLayout(new FlowLayout(FlowLayout.CENTER))
             mainPanel.add(createServerPanel())
-            mainPanel.add(createUsernamePanel())
-            mainPanel.add(createPasswordPanel())
-            mainPanel.add(createPasswordConfirmPanel())
+            mainPanel.add(createCredentialsPanel())
             mainPanel.add(createControlsPanel())
 
             frame.getContentPane().add(BorderLayout.CENTER, mainPanel)

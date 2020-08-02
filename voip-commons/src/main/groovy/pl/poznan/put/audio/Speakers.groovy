@@ -72,8 +72,10 @@ class Speakers {
     }
 
     void stop() {
-        line.stop()
-        line.close()
+        if (line != null) {
+            line.stop()
+            line.close()
+        }
     }
 
 }

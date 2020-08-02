@@ -21,12 +21,12 @@ class RedisClient {
     RedisClient(String redisHost, boolean checkMessageTarget) {
         this.checkMessageTarget = checkMessageTarget
         this.redisHost = redisHost
-        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 60)
+        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, GlobalConstants.REDIS_TIMEOUT)
     }
 
     RedisClient(String redisHost) {
         this.redisHost = redisHost
-        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
+        publisher = new Jedis(redisHost, GlobalConstants.REDIS_PORT, GlobalConstants.REDIS_TIMEOUT)
     }
 
     void subscribeChannelWithUnsubscribeAll(String channelName, String currentSubscriber, Closure onMessage) {
@@ -34,16 +34,17 @@ class RedisClient {
         subscribeChannel(channelName, currentSubscriber, onMessage)
     }
 
-    void subscribeChannel(String channelName, String currentSubscriber, Closure onMessage) {
+    void subscribeChannel(String channelName, String currentSubscriber, Closure onMessage) throws JedisConnectionException {
         log.info("[${channelName}] subscribing")
         JedisPubSub channel = createPubSub(currentSubscriber, onMessage)
 
-        Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, 15)
+        Jedis subscriber = new Jedis(redisHost, GlobalConstants.REDIS_PORT, GlobalConstants.REDIS_TIMEOUT)
         Thread t = new Thread({
             try {
                 subscriber.subscribe(channel, channelName)
             } catch (JedisConnectionException e) {
                 log.info("[${channelName}] error occurred: ${e.getMessage()}")
+                throw e
             }
         })
         subscriberThreads.put(channelName, t)

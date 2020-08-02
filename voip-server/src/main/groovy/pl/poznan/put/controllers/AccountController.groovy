@@ -87,11 +87,18 @@ class AccountController {
     ResponseEntity<ApiResponse> changePassword(@RequestBody PasswordChangeRequest changePasswordRequest) {
         log.info("received password change request: " + changePasswordRequest.toJSON().toString())
 
-        if (!DatabaseManager.checkAccount(changePasswordRequest)) {
+        AccountStatus accountStatus = DatabaseManager.checkAccount(changePasswordRequest)
+
+        if (accountStatus == INCORRECT_PASSWORD) {
             return new ResponseEntity(HttpStatus.UNAUTHORIZED)
         }
 
+        if (accountStatus == NOT_EXISTS) {
+            return new ResponseEntity(HttpStatus.NOT_FOUND)
+        }
+
         PasswordPolicy policy = DatabaseManager.getPasswordPolicy()
+
         if (!policy.validatePassword(changePasswordRequest.newPassword)) {
             return new ResponseEntity(new MessageResponse(message: PASSWORD_POLICY_NOT_MATCHED), HttpStatus.BAD_REQUEST)
         }
